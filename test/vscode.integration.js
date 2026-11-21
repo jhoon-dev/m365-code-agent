@@ -10,8 +10,8 @@ async function run() {
   assert.ok(extension, 'extension is loaded');
   const { provider, modelProvider } = await extension.activate();
   assert.equal(provider.newWebChat, !provider.webUrl, 'an unlinked initial VS Code chat must start its own web conversation');
-  assert.ok(extension.packageJSON.contributes.viewsContainers.secondarySidebar.some(container => container.id === 'm365Agent'));
-  assert.equal(extension.packageJSON.contributes.viewsContainers.activitybar, undefined);
+  assert.ok(extension.packageJSON.contributes.viewsContainers.activitybar.some(container => container.id === 'm365Agent'));
+  assert.equal(extension.packageJSON.contributes.viewsContainers.secondarySidebar, undefined);
   assert.ok((await vscode.commands.getCommands(true)).includes('workbench.view.extension.m365Agent.resetViewContainerLocation'));
   await Promise.race([vscode.commands.executeCommand('m365Agent.open'), new Promise((_resolve, reject) => setTimeout(() => reject(new Error('agent open timed out')), 20000))]);
   for (let tries = 0; !provider.view && tries < 100; tries++) await new Promise(resolve => setTimeout(resolve, 100));
@@ -19,7 +19,7 @@ async function run() {
   // Simulate a saved old/custom placement, then restore just the agent via its open command.
   await vscode.commands.executeCommand('vscode.moveViews', { viewIds: ['m365Agent.chat'], destinationId: 'workbench.view.explorer' });
   await Promise.race([vscode.commands.executeCommand('m365Agent.open'), new Promise((_resolve, reject) => setTimeout(() => reject(new Error('agent open timed out')), 20000))]);
-  assert.equal(provider.view.visible, true, 'chat reopens after restoring its secondary-sidebar location');
+  assert.equal(provider.view.visible, true, 'chat reopens after restoring its primary-sidebar location');
   assert.match(provider.view.webview.html, /Content-Security-Policy/);
   await provider.handle({ type: 'openResponse', text: '## Readable response\n\n```js\nconst value = 1;\n```', readingSize: 16, wrapCode: true });
   assert.equal(provider.responsePanel.panel.viewType, 'm365Agent.response');
@@ -686,7 +686,7 @@ document.querySelector('#answer').textContent='JSON\\n복사\\n'+JSON.stringify(
     assert.equal(provider.context.workspaceState.get('sessions').some(session => session.id === id), false);
     assert.match(await fs.readFile(path.join(root, 'samples/add.js'), 'utf8'), /exports.add/);
   } finally { provider.conversations.vscode = historyApi; }
-  const report = { ok: true, checks: ['extension activation', 'offline browser launch/profile diagnostics without relaunch', 'sidebar webview', 'secondary-sidebar default and saved-location recovery', 'wide read-only response editor', 'local workspace read/write probe without M365', 'file read', 'existing-file modification', 'nested new-file creation', 'save to disk', 'command approval and rejection', 'changed-file command review', 'forced execution-config review', 'explicit automatic file/command approval and policy isolation', 'unlimited requests keep execution-config review and JSON-safe progress', 'delete approval/rejection, binary/UTF-16/empty restoration, mixed edits, collision and dirty-file guards', 'nested/empty-folder deletion, byte restoration, dirty/changed/recreated guards and new-file resource-event race', 'large-file partial edit', 'real generated test execution', 'checkpoint undo', 'persistent conversation', 'dirty-file protection', 'Edge launch/input inside VS Code extension host', 'automatic rendered-widget response collection inside VS Code', 'automatic source inspection -> browser tool arguments -> real edit over 128KB'], version: vscode.version };
+  const report = { ok: true, checks: ['extension activation', 'offline browser launch/profile diagnostics without relaunch', 'sidebar webview', 'primary-sidebar default and saved-location recovery', 'wide read-only response editor', 'local workspace read/write probe without M365', 'file read', 'existing-file modification', 'nested new-file creation', 'save to disk', 'command approval and rejection', 'changed-file command review', 'forced execution-config review', 'explicit automatic file/command approval and policy isolation', 'unlimited requests keep execution-config review and JSON-safe progress', 'delete approval/rejection, binary/UTF-16/empty restoration, mixed edits, collision and dirty-file guards', 'nested/empty-folder deletion, byte restoration, dirty/changed/recreated guards and new-file resource-event race', 'large-file partial edit', 'real generated test execution', 'checkpoint undo', 'persistent conversation', 'dirty-file protection', 'Edge launch/input inside VS Code extension host', 'automatic rendered-widget response collection inside VS Code', 'automatic source inspection -> browser tool arguments -> real edit over 128KB'], version: vscode.version };
   report.checks.push('native image/PDF/Word/Excel bytes and MIME, external file selection, upload-once tool rounds, editor isolation and real video frame decoding');
   report.checks.push('native editor selection and diagnostic quickfix review', 'native lm.tools/invokeTool MCP lookup, argument approval and separate file diff review');
   report.checks.push('opt-in model provider native registration, discovery and typed tool call/result round-trip');

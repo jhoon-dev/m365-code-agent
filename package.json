@@ -2,7 +2,7 @@
   "name": "m365-code-agent",
   "displayName": "M365 Code Agent",
   "description": "Unofficial, experimental coding agent that uses your signed-in M365 Copilot through Edge to read, edit and delete files in a VS Code workspace.",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "publisher": "jhoon-dev",
   "author": "jhoon-dev",
   "preview": true,
@@ -60,7 +60,8 @@
     "commands": [
       {
         "command": "m365Agent.open",
-        "title": "M365 Agent: 오른쪽에서 열기"
+        "title": "M365 Agent: 열기",
+        "icon": "$(robot)"
       },
       {
         "command": "m365Agent.connect",
@@ -135,6 +136,12 @@
       }
     ],
     "menus": {
+      "editor/title": [
+        {
+          "command": "m365Agent.open",
+          "group": "navigation@1"
+        }
+      ],
       "editor/context": [
         {
           "submenu": "m365Agent.editorMenu",
@@ -164,7 +171,7 @@
       ]
     },
     "viewsContainers": {
-      "secondarySidebar": [
+      "activitybar": [
         {
           "id": "m365Agent",
           "title": "M365 Agent",

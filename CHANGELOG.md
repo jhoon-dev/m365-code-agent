@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.1
+
+- Show M365 Agent in the primary sidebar Activity Bar and add an editor title toolbar icon that opens the same chat view.
+- Restore the agent view to the primary sidebar when opening it from an older saved layout. Update installation guides and extension-host integration coverage.
+
 ## 0.16.0
 
 - Accept legitimate Windows 8.3 file paths while rejecting symbolic links and directory junctions through filesystem-entry checks.

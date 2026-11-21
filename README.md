@@ -8,7 +8,7 @@ An independent VS Code coding agent that uses your signed-in Microsoft 365 Copil
 
 This project is not affiliated with, endorsed by, or supported by Microsoft. You need an eligible Microsoft 365 Copilot account and permission to use browser automation in your organization. Successful tests with one account and example projects do not establish compatibility with every tenant, login flow or security policy.
 
-Version **0.16.0** adds native image, PDF, Word and Excel uploads plus sampled video-frame analysis in the M365 Agent sidebar. Both prompt budgets now default to 120,000 characters. It retains mapped conversations, the optional model provider and existing Webview protections. See the [changelog](CHANGELOG.md).
+Version **0.16.1** adds native image, PDF, Word and Excel uploads plus sampled video-frame analysis in the M365 Agent sidebar. Both prompt budgets now default to 120,000 characters. It retains mapped conversations, the optional model provider and existing Webview protections. See the [changelog](CHANGELOG.md).
 
 ## Authentication and change protection
 
@@ -20,8 +20,8 @@ Code, conversation context and tool results needed for a task are sent to the si
 
 ## Install and connect
 
-1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent), or use **Extensions → … → Install from VSIX…** with `m365-code-agent-0.16.0.vsix` from a [GitHub release](https://github.com/jhoon-dev/m365-code-agent/releases).
-2. Open a local project and the **M365 Agent** view in the secondary sidebar. The command `M365 Agent: 오른쪽에서 열기` opens/restores this view.
+1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent), or use **Extensions → … → Install from VSIX…** with `m365-code-agent-0.16.1.vsix` from a [GitHub release](https://github.com/jhoon-dev/m365-code-agent/releases).
+2. Open a local project and click the **M365 Agent** icon in the left Activity Bar or the editor title toolbar. The command `M365 Agent: 열기` also opens/restores this view in the primary sidebar.
 3. Click **연결** (Connect) below the input. The **M365 Copilot 브라우저** editor tab displays the actual automated Edge page.
 4. Complete your company login and MFA yourself, then open the Copilot chat page. Use **외부 브라우저로 전환** (Switch to external browser) if native authentication windows are needed.
 5. Enter a request in VS Code and press Enter or the send arrow. Shift+Enter inserts a newline. Subsequent submission and response collection are automatic.
