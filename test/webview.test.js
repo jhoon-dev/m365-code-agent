@@ -15,7 +15,7 @@ test('chat UI handles submission, Korean IME, progress, approvals and narrow lay
   let provider;
   const noop = () => {};
   const vscode = {
-    window: { createOutputChannel: () => ({ appendLine: noop, dispose: noop }), registerWebviewViewProvider: (_id, value) => { provider = value; } },
+    window: { createTreeView: () => ({ visible: false, onDidChangeVisibility: noop, dispose: noop }), createOutputChannel: () => ({ appendLine: noop, dispose: noop }), registerWebviewViewProvider: (_id, value) => { provider = value; } },
     workspace: { registerTextDocumentContentProvider: noop }, commands: { registerCommand: noop },
     languages: { registerCodeActionsProvider: noop },
     CodeActionKind: { QuickFix: { append: value => `quickfix.${value}` } },

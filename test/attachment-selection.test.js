@@ -22,6 +22,7 @@ async function fixture(t) {
   const posted = [];
   const vscode = {
     window: {
+      createTreeView: () => ({ visible: false, onDidChangeVisibility: noop, dispose: noop }),
       createOutputChannel: () => ({ appendLine: noop, dispose: noop }),
       registerWebviewViewProvider: noop,
       showQuickPick: async items => items,
