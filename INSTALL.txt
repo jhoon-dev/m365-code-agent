@@ -1,4 +1,4 @@
-M365 Code Agent 0.16.1 - Installation and use
+M365 Code Agent 0.16.2 - Installation and use
 ==========================================
 
 English is the default release language. For Korean, see INSTALL.ko.txt and
@@ -20,7 +20,7 @@ outside this release's scope.
 Install and use the existing M365 Agent chat
 ------------------------------------------
 1. Open VS Code Extensions, choose ... > Install from VSIX..., and select
-   m365-code-agent-0.16.1.vsix. Reload VS Code if prompted.
+   m365-code-agent-0.16.2.vsix. Reload VS Code if prompted.
    Marketplace: https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent
 2. Open the local project you want to work on.
 3. Click M365 Agent in the left Activity Bar or editor title toolbar. If an older layout remains, run

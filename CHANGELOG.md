@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.2
+
+- Keep the Activity Bar shortcut on the left while opening chat in the right secondary sidebar. The editor toolbar opens the same right-side chat.
+- Add a separate lightweight launcher so the chat view stays in its own secondary-sidebar container.
+
 ## 0.16.1
 
 - Show M365 Agent in the primary sidebar Activity Bar and add an editor title toolbar icon that opens the same chat view.

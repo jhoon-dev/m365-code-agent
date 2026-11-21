@@ -719,6 +719,17 @@ function activate(context) {
     await vscode.commands.executeCommand('workbench.view.extension.m365Agent.resetViewContainerLocation');
     return vscode.commands.executeCommand('m365Agent.chat.focus');
   });
+  const launcher = vscode.window.createTreeView('m365Agent.launcher', {
+    treeDataProvider: { getChildren: () => [], getTreeItem: (item) => item },
+  });
+  const openChat = () => vscode.commands.executeCommand('m365Agent.open');
+  context.subscriptions.push(
+    launcher,
+    launcher.onDidChangeVisibility(({ visible }) => {
+      if (visible) void openChat();
+    }),
+  );
+  if (launcher.visible) void openChat();
   command('m365Agent.connect', () => provider.connect());
   command('m365Agent.showBrowser', () => provider.showBrowser());
   command('m365Agent.editorBrowser', () => provider.switchBrowserView('editor'));
