@@ -36,6 +36,23 @@ test('automatic file approval bypasses execution-config review but never bypasse
   await assert.rejects(controller.runCommand('npm test', 'C:/project', true), /중지/);
 });
 
+test('preview cache is bounded and evicts the oldest before and after entries together', async () => {
+  const { host, controller } = fixture();
+  host.stopRequested = true;
+  const proposals = [];
+  for (let index = 0; index < 130; index++) {
+    const change = { path: 'example.js', action: 'replace', original: 'old ' + index, content: 'new ' + index };
+    await controller.stageAndApply({}, [change], 'Preview', false, true);
+    proposals.push(change);
+    assert.ok(host.previews.size <= 200);
+  }
+  assert.equal(host.previews.size, 200);
+  for (const [index, change] of proposals.entries()) {
+    assert.equal(host.previews.get(change.previewId + '-old'), index < 30 ? undefined : change.original);
+    assert.equal(host.previews.get(change.previewId + '-new'), index < 30 ? undefined : change.content);
+  }
+});
+
 test('prompts reflect the host-selected policy while read-only tasks stay read-only', () => {
   const common = { id: 'test', task: 'Update the code.', workspace: 'test', files: [], history: [] };
   assert.match(buildPrompt(common), /Commands need user approval/);

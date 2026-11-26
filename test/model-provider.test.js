@@ -145,15 +145,31 @@ test('lost or stale Chat identity and failed restoration never fall back to a ne
   assert.equal(f.log.filter(entry => entry.type === 'newChat').length, 1);
 });
 
-test('failed first submission retries its recorded web chat and persistence failure closes the browser', async t => {
+test('an identical first prompt after an anonymous failure starts a different web chat', async t => {
   let attempt = 0;
   const f = await fixture(t, (_prompt, id) => {
     if (++attempt === 1) throw new Error('response lost');
     return { requestId: id, kind: 'model', text: 'answer', toolCalls: [] };
   });
   await assert.rejects(f.request(undefined, { modelOptions: {} }).done, /response lost/);
-  await assert.rejects(f.request([message('안녕'), message('changed follow up after failure')], { modelOptions: {} }).done, /첫 응답/);
+  assert.equal(f.provider.conversations.records.size, 0);
+  assert.deepEqual(f.state.get(), []);
   await f.request(undefined, { modelOptions: {} }).done;
+  const urls = f.log.filter(entry => entry.type === 'newChat').map(entry => entry.url);
+  assert.equal(new Set(urls).size, 2);
+  assert.equal(f.log.some(entry => entry.type === 'resume'), false);
+});
+
+test('explicit conversation IDs recover a failed first submission and persistence failure closes the browser', async t => {
+  let attempt = 0;
+  const f = await fixture(t, (_prompt, id) => {
+    if (++attempt === 1) throw new Error('response lost');
+    return { requestId: id, kind: 'model', text: 'answer', toolCalls: [] };
+  });
+  await assert.rejects(f.request().done, /response lost/);
+  await f.request().done;
+  const opened = f.log.find(entry => entry.type === 'newChat');
+  assert.deepEqual(f.log.filter(entry => entry.type === 'resume'), [{ type: 'resume', url: opened.url }]);
   assert.equal(f.log.filter(entry => entry.type === 'newChat').length, 1);
   f.state.update = async () => { throw new Error('storage unavailable'); };
   await assert.rejects(f.request().done, /storage unavailable/);

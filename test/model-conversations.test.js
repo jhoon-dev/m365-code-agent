@@ -45,6 +45,25 @@ test('new native Chats remain distinct, user references cannot route, mixed/stal
   assert.throws(() => foreign.resolve(history, {}, endpoint), /연결 정보/);
 });
 
+test('legacy anonymous failed mappings are discarded while explicitly identified failures are restored', async () => {
+  const input = [msg('user', 'same prompt')];
+  const map = new ModelConversations();
+  const anonymous = map.resolve(input, {}, endpoint).record;
+  const options = { modelOptions: { m365ConversationId: 'known-chat' } };
+  const explicit = map.resolve(input, options, endpoint).record;
+  for (const record of [anonymous, explicit]) {
+    record.started = true;
+    map.capture(record, { restorable: true, url: endpoint + '?threadId=' + record.id });
+  }
+  let saved = [{ ...anonymous, failedInput: 'a'.repeat(64) }, explicit];
+  const restored = new ModelConversations({ get: () => saved, async update(_key, value) { saved = value; } });
+  assert.equal(restored.records.has(anonymous.id), false);
+  assert.equal(restored.resolve(input, {}, endpoint).record.url, null);
+  assert.equal(restored.resolve(input, options, endpoint).record.url, explicit.url);
+  await restored.save();
+  assert.deepEqual(saved.map(record => record.id), [explicit.id]);
+});
+
 test('bounded saved turn lookup accepts long histories only when their latest anchor is current', () => {
   const map = new ModelConversations(), record = map.resolve([msg('user', 'first')], {}, endpoint).record;
   const history = [];

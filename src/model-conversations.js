@@ -52,7 +52,6 @@ class ModelConversations {
             typeof value.started !== 'boolean' ||
             this.records.has(value.id) ||
             (value.explicitKey !== undefined && !/^[a-f0-9]{64}$/.test(value.explicitKey)) ||
-            (value.failedInput !== undefined && !/^[a-f0-9]{64}$/.test(value.failedInput)) ||
             !Array.isArray(value.turns) ||
             !Array.isArray(value.calls)
           )
@@ -69,12 +68,13 @@ class ModelConversations {
             )
           )
             throw Error('invalid');
+          // An anonymous record without an emitted turn cannot identify a Chat.
+          if (!value.explicitKey && !value.turns.length) continue;
           this.records.set(value.id, {
             id: value.id,
             scope: value.scope,
             started: value.started,
             ...(value.explicitKey ? { explicitKey: value.explicitKey } : {}),
-            ...(value.failedInput ? { failedInput: value.failedInput } : {}),
             url: value.url ? webUrl(value.url) : null,
             turns: [...value.turns],
             calls: [...value.calls],
@@ -135,23 +135,6 @@ class ModelConversations {
         );
       return { record, cursor: matches.at(-1)?.turn, explicit: Boolean(explicitKey) };
     }
-    const fingerprint = hash(
-      JSON.stringify({ messages: cleanMessages(messages), tools: options.tools, toolMode: options.toolMode }),
-    );
-    const failed = [...this.records.values()].filter(
-      (record) => record.scope === scope && record.failedInput === fingerprint,
-    );
-    if (!explicitKey && failed.length === 1) return { record: failed[0], explicit: false };
-    if (
-      !explicitKey &&
-      messages.filter(
-        (message) => message.role === 'user' && message.content.some((part) => part.type === 'text'),
-      ).length > 1 &&
-      [...this.records.values()].some((record) => record.scope === scope && record.failedInput)
-    )
-      throw sessionError(
-        '첫 응답이 완료되지 않아 이 후속 요청의 웹 연결을 확인할 수 없습니다. 새 웹 대화를 자동으로 만들지 않았습니다. 원래 요청을 재시도하거나 새 VS Code Chat에서 시작하세요.',
-      );
     if (!explicitKey && messages.some((message) => message.role === 'assistant'))
       throw sessionError(
         'VS Code가 이 대화의 복원 식별자를 전달하지 않았습니다. 기존 대화를 임의로 추정하거나 새 웹 대화를 만들지 않았습니다. 모델을 처음 선택했다면 새 VS Code Chat에서 시작하세요.',
@@ -170,7 +153,7 @@ class ModelConversations {
       ...(explicitKey ? { explicitKey } : {}),
     };
     this.records.set(created.id, created);
-    return { record: created, explicit: Boolean(explicitKey), fingerprint };
+    return { record: created, explicit: Boolean(explicitKey) };
   }
 
   check(binding) {
@@ -196,7 +179,6 @@ class ModelConversations {
     record.calls = [...record.calls, ...mapped.map((call) => ({ id: call.id, turn }))]
       .filter((call) => record.turns.includes(call.turn))
       .slice(-128);
-    delete record.failedInput;
     return {
       text: `[m365-chat:${record.id}:${turn}]: https://m365.cloud.microsoft/\n\n${cleanText(text)}`,
       calls: mapped,
@@ -206,7 +188,9 @@ class ModelConversations {
   async save() {
     await this.state?.update(
       'modelWebConversations.v1',
-      [...this.records.values()].filter((record) => record.started || record.turns.length),
+      [...this.records.values()].filter(
+        (record) => record.turns.length || (record.started && record.explicitKey),
+      ),
     );
   }
 
@@ -219,7 +203,7 @@ class ModelConversations {
     if (remaining) this.references.set(record.id, remaining);
     else {
       this.references.delete(record.id);
-      if (!record.started && !record.turns.length) this.records.delete(record.id);
+      if (!record.turns.length && !(record.started && record.explicitKey)) this.records.delete(record.id);
     }
   }
 }

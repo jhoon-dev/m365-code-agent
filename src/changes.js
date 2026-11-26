@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { digest } = require('./workspace');
+const { decodeText, digest, digestBytes } = require('./workspace');
 const { requiresReview } = require('./policy');
 /** @typedef {import('../types/contracts').PreparedChange} PreparedChange */
 /** @typedef {import('./workspace').WorkspaceStore} WorkspaceStore */
@@ -59,7 +59,7 @@ class ChangeController {
     host.post({ type: 'undoState', available: true });
   }
   /** @param {WorkspaceStore} store @param {PreparedChange[]} changes */
-  async preservePartialDeletes(store, changes) {
+  async findPartialDeletes(store, changes) {
     /** @type {PreparedChange[]} */
     const missing = [];
     for (const change of changes.filter((change) => change.action === 'delete')) {
@@ -96,8 +96,36 @@ class ChangeController {
         this.host.output?.appendLine(`삭제 상태 확인 실패 · ${change.path}: ${error.message}`);
       }
     }
-    if (missing.length) this.recordCheckpoint(store, missing);
-    return missing.length;
+    return missing;
+  }
+  /** @param {WorkspaceStore} store @param {PreparedChange[]} changes */
+  async findAppliedTextChanges(store, changes) {
+    const applied = [];
+    const normalizeEol = (/** @type {string} */ text) => text.replace(/\r\n/g, '\n');
+    for (const change of changes.filter((item) => item.action !== 'delete')) {
+      try {
+        await store.resolve(change.path, true);
+        if (!(await exists(change.target))) continue;
+        const snapshot = await store.loadBytes(change.path);
+        const diskText = normalizeEol(decodeText(snapshot.buffer));
+        const planned = normalizeEol(change.content);
+        const before = change.action === 'create' ? '' : normalizeEol(change.original);
+        const document = await this.vscode.workspace.openTextDocument(this.vscode.Uri.file(change.target));
+        const actual = document.getText();
+        // WorkspaceEdit can leave a text edit in the editor while the disk still holds the original.
+        if (change.action !== 'create' && actual === change.original) continue;
+        if (normalizeEol(actual) !== planned || (diskText !== before && diskText !== planned)) continue;
+        applied.push({
+          ...change,
+          appliedHash: digest(actual),
+          diskHash: snapshot.hash,
+          appliedDirty: document.isDirty,
+        });
+      } catch (error) {
+        this.host.output?.appendLine('변경 상태 확인 실패 · ' + change.path + ': ' + error.message);
+      }
+    }
+    return applied;
   }
   /** @param {string} command @param {string} root */
   async runCommand(command, root, autoApprove = false) {
@@ -155,9 +183,12 @@ class ChangeController {
       change.previewId = id;
       host.previews.set(id + '-old', change.original);
       host.previews.set(id + '-new', change.content);
-      if (host.previews.size > 200) {
+      while (host.previews.size > 200) {
         const oldest = host.previews.keys().next().value;
-        if (oldest !== undefined) host.previews.delete(oldest);
+        if (oldest === undefined) break;
+        const oldestId = oldest.slice(0, -4);
+        host.previews.delete(oldestId + '-old');
+        host.previews.delete(oldestId + '-new');
       }
     }
     const viewData = {
@@ -263,13 +294,15 @@ class ChangeController {
       applyError = error;
     }
     if (!applied) {
-      const partial = await this.preservePartialDeletes(store, changes);
+      const partialDeletes = await this.findPartialDeletes(store, changes);
+      const partial = [...partialDeletes, ...(await this.findAppliedTextChanges(store, changes))];
+      if (partial.length) this.recordCheckpoint(store, partial);
       /** @type {Error & { code?: string }} */
       const error = new Error(
-        `VS Code가 변경을 완료하지 못했습니다.${partial ? ' 부분 삭제 ' + partial + '건의 백업을 보관했습니다. 되돌리기로 복원할 수 있습니다.' : ' 편집기에서 파일 상태를 확인하세요.'}`,
+        `VS Code가 변경을 완료하지 못했습니다.${partial.length ? ' 부분 변경 ' + partial.length + '건의 복구 기록을 보관했습니다. 되돌리기로 복원할 수 있습니다.' : ' 편집기에서 파일 상태를 확인하세요.'}`,
         { cause: applyError },
       );
-      if (partial) error.code = 'PARTIAL_DELETE';
+      if (partial.length) error.code = partialDeletes.length ? 'PARTIAL_DELETE' : 'PARTIAL_CHANGE';
       throw error;
     }
     this.recordCheckpoint(store, changes);
@@ -286,8 +319,8 @@ class ChangeController {
       if (!(await document.save())) failed.push(path.basename(uri.fsPath));
       change.appliedHash = digest(document.getText());
       change.diskHash = await fs
-        .readFile(uri.fsPath, 'utf8')
-        .then(digest)
+        .readFile(uri.fsPath)
+        .then(digestBytes)
         .catch(() => null);
     }
     if (failed.length)
@@ -357,9 +390,9 @@ class ChangeController {
       }
       const document = await vscode.workspace.openTextDocument(uri);
       if (
-        document.isDirty ||
+        (document.isDirty && !change.appliedDirty) ||
         digest(document.getText()) !== change.appliedHash ||
-        digest(await fs.readFile(change.target, 'utf8')) !== change.diskHash
+        digestBytes(await fs.readFile(change.target)) !== change.diskHash
       )
         throw new Error(`이후 편집이 있어 되돌릴 수 없습니다: ${change.path}`);
       if (change.action === 'create') edit.deleteFile(uri, { recursive: false });

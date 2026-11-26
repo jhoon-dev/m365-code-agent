@@ -756,4 +756,4 @@ class WorkspaceStore {
     }
   }
 }
-module.exports = { WorkspaceStore, digest };
+module.exports = { WorkspaceStore, decodeText, digest, digestBytes };

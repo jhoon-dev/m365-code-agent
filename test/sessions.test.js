@@ -32,6 +32,30 @@ test('repeated history switches reuse the browser active tab without a separate 
   assert.equal(newPages(), 0);
 });
 
+test('history selection and web sync clear attachments only when switching conversations', async () => {
+  const { host, controller, navigate } = fixture();
+  host.attachments = ['a.pdf'];
+  await controller.selectSession('a');
+  assert.deepEqual(host.attachments, ['a.pdf']);
+  await controller.selectSession('b');
+  assert.equal(host.sessionId, 'b');
+  assert.deepEqual(host.attachments, []);
+
+  host.attachments = ['b.pdf'];
+  await controller.syncWeb(false);
+  assert.deepEqual(host.attachments, ['b.pdf']);
+  navigate('https://m365.cloud.microsoft/chat?threadId=a');
+  await controller.syncWeb(false);
+  assert.equal(host.sessionId, 'a');
+  assert.deepEqual(host.attachments, []);
+
+  host.attachments = ['a-again.pdf'];
+  navigate('https://m365.cloud.microsoft/chat?threadId=another');
+  await controller.syncWeb();
+  assert.notEqual(host.sessionId, 'a');
+  assert.deepEqual(host.attachments, []);
+});
+
 test('new chat prepares the same tab once and links its first conversation without old messages', async () => {
   const { host, controller, navigate, newChats, newPages } = fixture();
   const page = host.browser.page;

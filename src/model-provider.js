@@ -205,7 +205,6 @@ class ExperimentalModelProvider {
               : '';
           const previousTurns = [...conversation.turns],
             previousCalls = [...conversation.calls];
-          const previousFailedInput = conversation.failedInput;
           const response = this.conversations.finish(conversation, notice + reply.text, reply.toolCalls);
           try {
             await this.conversations.save();
@@ -213,7 +212,6 @@ class ExperimentalModelProvider {
           } catch (error) {
             conversation.turns = previousTurns;
             conversation.calls = previousCalls;
-            if (previousFailedInput) conversation.failedInput = previousFailedInput;
             await this.conversations.save();
             throw error;
           }
@@ -231,8 +229,6 @@ class ExperimentalModelProvider {
           await stopping;
           try {
             if (!succeeded && conversation.started) {
-              if (binding.fingerprint && !conversation.turns.length)
-                conversation.failedInput = binding.fingerprint;
               try {
                 this.conversations.capture(conversation, browser.conversationInfo());
               } catch {

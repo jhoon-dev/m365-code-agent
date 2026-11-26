@@ -339,7 +339,7 @@ class CodingAgent {
             });
             if (!applied) return { status: 'rejected' };
           } catch (error) {
-            if (this.cancelled || error.code === 'PARTIAL_DELETE') throw error;
+            if (this.cancelled || ['PARTIAL_DELETE', 'PARTIAL_CHANGE'].includes(error.code)) throw error;
             this.emit({ type: 'message', role: 'system', text: `수정안 검증: ${error.message}` });
             fresh = progress.failure(error);
             history.push({

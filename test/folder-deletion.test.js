@@ -121,6 +121,78 @@ test('partial folder deletion restores only missing known entries while preservi
   assert.equal(host.checkpoints.length, 0);
 });
 
+test('undo restores text edits and creations from the same batch as a partial folder deletion', async t => {
+  const { root, files, store } = await fixture(t);
+  const edited = path.join(root, 'edited.js'), created = path.join(root, 'created.js');
+  const original = 'const value = 1;\n', replacement = 'const value = 2;\n';
+  await fs.writeFile(edited, original);
+  const base = await store.readFile('edited.js'), folder = await store.folderInfo('old');
+  const changes = await store.prepareChanges([
+    { path: 'created.js', action: 'create', baseHash: null, content: 'new\n' },
+    { path: base.path, action: 'replace', baseHash: base.hash, content: replacement },
+    { path: folder.path, action: 'delete', baseHash: folder.hash },
+  ]);
+  const host = { previews: new Map(), checkpoints: [], changedFiles: new Map(), post() {} };
+  const documents = new Map();
+  const openTextDocument = async uri => {
+    if (!documents.has(uri.fsPath)) {
+      documents.set(uri.fsPath, {
+        uri, text: await fs.readFile(uri.fsPath, 'utf8'), isDirty: false,
+        getText() { return this.text; }, positionAt(offset) { return offset; },
+        async save() { await fs.writeFile(uri.fsPath, this.text); this.isDirty = false; return true; },
+      });
+    }
+    return documents.get(uri.fsPath);
+  };
+  class Edit {
+    creates = []; deletes = []; writes = [];
+    createFile(uri, options) { this.creates.push({ uri, options }); }
+    deleteFile(uri) { this.deletes.push(uri); }
+    insert(uri, _position, content) { this.writes.push({ uri, content }); }
+    replace(uri, _range, content) { this.writes.push({ uri, content }); }
+  }
+  let phase = 0;
+  const uri = fsPath => ({ scheme: 'file', fsPath });
+  const lateFile = path.join(root, 'old', 'new-user.txt');
+  const vscode = {
+    Uri: { file: uri }, WorkspaceEdit: Edit, Position: class {}, Range: class {},
+    workspace: {
+      get textDocuments() { return [...documents.values()]; },
+      fs: { createDirectory: value => fs.mkdir(value.fsPath, { recursive: true }) },
+      openTextDocument,
+      async applyEdit(edit) {
+        if (++phase === 2) { await fs.writeFile(lateFile, 'keep'); return false; }
+        for (const item of edit.creates) await fs.writeFile(item.uri.fsPath, item.options.contents ?? '', { flag: 'wx' });
+        for (const item of edit.writes) {
+          const document = await openTextDocument(item.uri);
+          document.text = item.content;
+          document.isDirty = true;
+        }
+        for (const value of edit.deletes) { await fs.unlink(value.fsPath); documents.delete(value.fsPath); }
+        return true;
+      },
+    },
+  };
+  const controller = new ChangeController(host, vscode);
+  await assert.rejects(controller.stageAndApply(store, changes, 'Mixed changes', false, true), { code: 'PARTIAL_DELETE' });
+  assert.equal(host.checkpoints.length, 1);
+  assert.deepEqual(host.checkpoints[0].changes.map(change => change.path).sort(), ['created.js', 'edited.js', 'old']);
+  assert.equal(await fs.readFile(edited, 'utf8'), original);
+  assert.equal(documents.get(created).text, 'new\n');
+  const updated = documents.get(edited);
+  assert.equal(updated.text, replacement);
+  updated.text += '// later user edit\n';
+  await assert.rejects(controller.undo(), /이후 편집/);
+  assert.equal(host.checkpoints.length, 1);
+  updated.text = replacement;
+  await controller.undo();
+  assert.equal(host.checkpoints.length, 0);
+  assert.equal(await fs.readFile(edited, 'utf8'), original);
+  await assert.rejects(fs.stat(created), { code: 'ENOENT' });
+  for (const [name, bytes] of files) assert.deepEqual(await fs.readFile(path.join(root, name)), bytes);
+  assert.equal(await fs.readFile(lateFile, 'utf8'), 'keep');
+});
+
 test('dirty descendants block folder deletion even with automatic approval', async t => {
   const { root, store } = await fixture(t), info = await store.folderInfo('old');
   const changes = await store.prepareChanges([{ path: info.path, action: 'delete', baseHash: info.hash }]);

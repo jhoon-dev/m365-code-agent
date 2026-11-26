@@ -51,6 +51,7 @@ interface PreparedBase {
   taskId?: string;
   previewId?: string;
   appliedHash?: string | null;
+  appliedDirty?: boolean;
   diskHash?: string | null;
 }
 export type PreparedChange =

@@ -130,6 +130,7 @@ class ConversationController {
       if (selected.webUrl) await this.openWeb(selected.webUrl);
       if (host.stopRequested) return;
       host.saveSession();
+      if (host.sessionId !== selected.id) host.attachments = [];
       host.sessionId = selected.id;
       host.events = selected.events;
       host.webUrl = selected.webUrl;
@@ -270,6 +271,7 @@ class ConversationController {
           host.sessionId = crypto.randomUUID();
           host.events = [];
         }
+        if (host.sessionId !== sessionId) host.attachments = [];
         host.webUrl = snapshot.url;
       }
       const merged = mergeHistory(host.events, snapshot.messages);
