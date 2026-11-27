@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.4
+
+- Fix README language-switch links for Marketplace readers by linking directly to the corresponding repository documents.
+- Translate mixed English explanations in the Korean guide, put installation before optional features, and separate historical live-account checks from current release information.
+- Refresh packaged documentation and installation version references. Runtime behavior is unchanged from 0.16.3.
+
 ## 0.16.3
 
 - Keep identical initial requests in separate web conversations after an anonymous model-provider failure. Discard anonymous failed mappings without a returned routing reference while preserving recovery through explicit conversation IDs.

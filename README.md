@@ -8,7 +8,11 @@ An independent VS Code coding agent that uses your signed-in Microsoft 365 Copil
 
 This project is not affiliated with, endorsed by, or supported by Microsoft. You need an eligible Microsoft 365 Copilot account and permission to use browser automation in your organization. Successful tests with one account and example projects do not establish compatibility with every tenant, login flow or security policy.
 
-## What's new in 0.16.3
+## What's new in 0.16.4
+
+This documentation update fixes the language-switch links for Marketplace readers and reorganizes the Korean guide with translated explanations. Runtime behavior is unchanged.
+
+### Included improvements from 0.16.3
 
 - Correct conversation routing when the model provider's first response fails.
 - Clear selected attachments when switching sidebar conversations, including switches detected through web synchronization.
@@ -27,7 +31,7 @@ Code, conversation context and tool results needed for a task are sent to the si
 
 ## Install and connect
 
-1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent), or use **Extensions → … → Install from VSIX…** with `m365-code-agent-0.16.3.vsix` from a [GitHub release](https://github.com/jhoon-dev/m365-code-agent/releases).
+1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent), or use **Extensions → … → Install from VSIX…** with `m365-code-agent-0.16.4.vsix` from a [GitHub release](https://github.com/jhoon-dev/m365-code-agent/releases).
 2. Open a local project and click the **M365 Agent** icon in the left Activity Bar or the editor title toolbar. The command `M365 Agent: 열기` also opens/restores this view in the secondary sidebar.
 3. Click **연결** (Connect) below the input. The **M365 Copilot 브라우저** editor tab displays the actual automated Edge page.
 4. Complete your company login and MFA yourself, then open the Copilot chat page. Use **외부 브라우저로 전환** (Switch to external browser) if native authentication windows are needed.
