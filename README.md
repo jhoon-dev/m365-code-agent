@@ -1,6 +1,6 @@
 # M365 Code Agent
 
-[English](README.md) | [한국어](README.ko.md)
+**English** | [한국어](https://github.com/jhoon-dev/m365-code-agent/blob/main/README.ko.md)
 
 **Experimental preview · Unofficial · Windows + Microsoft Edge**
 
@@ -8,7 +8,14 @@ An independent VS Code coding agent that uses your signed-in Microsoft 365 Copil
 
 This project is not affiliated with, endorsed by, or supported by Microsoft. You need an eligible Microsoft 365 Copilot account and permission to use browser automation in your organization. Successful tests with one account and example projects do not establish compatibility with every tenant, login flow or security policy.
 
-Version **0.16.3** fixes conversation routing after an initial model-provider failure, clears selected attachments when switching sidebar conversations, and improves Undo after a partially applied change batch. It retains native document/media uploads, mapped conversations and existing Webview protections. See the [changelog](CHANGELOG.md).
+## What's new in 0.16.3
+
+- Correct conversation routing when the model provider's first response fails.
+- Clear selected attachments when switching sidebar conversations, including switches detected through web synchronization.
+- Restore verified edits, created files and partial folder deletions from a failed change batch with one Undo action, while protecting subsequent user changes.
+- Bound the diff preview cache and remove each before/after pair together.
+
+Native document/media uploads, mapped conversations and existing Webview protections remain available. See the [changelog](CHANGELOG.md) for earlier releases.
 
 ## Authentication and change protection
 
@@ -247,6 +254,6 @@ npm run clean:test-output -- --apply --keep=3 --older-than-hours=24
 
 Only completed older `.test-output/integration-*` runs with verified ownership are candidates. The newest three, runs younger than 24 hours, active runs and unknown/link/junction paths are retained. Each candidate is revalidated before removal. Project code, release files, Copilot login profiles and parent-directory browser records are outside the cleanup scope. Fixtures use canonical OS temporary paths and test Windows drive-letter casing and ownership changes.
 
-Packaging rejects test outputs, browser profiles, credential paths and tracked test profiles. Source ZIPs are generated from `git archive`, not by compressing the working folder. Release documentation defaults to English; [한국어 README](README.ko.md) and `INSTALL.ko.txt` are optional alternatives.
+Packaging rejects test outputs, browser profiles, credential paths and tracked test profiles. Source ZIPs are generated from `git archive`, not by compressing the working folder. Release documentation defaults to English; [한국어 README](https://github.com/jhoon-dev/m365-code-agent/blob/main/README.ko.md) and [Korean installation guide](INSTALL.ko.txt) are also available.
 
 References: [Playwright persistent contexts](https://playwright.dev/docs/api/class-browsertype#browser-type-launch-persistent-context), [VS Code Webviews](https://code.visualstudio.com/api/extension-guides/webview), [VSIX packaging and publishing](https://code.visualstudio.com/api/working-with-extensions/publishing-extension).
