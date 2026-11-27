@@ -1,4 +1,5 @@
 'use strict';
+const { t } = require('./localization');
 const crypto = require('node:crypto');
 const { validateCopilotUrl } = require('./browser');
 const { conversationUrl, mergeHistory } = require('./web-history');
@@ -15,7 +16,7 @@ class ConversationController {
   }
   async protectWebDraft(browser) {
     if (browser.generationActive && (await browser.generationActive()))
-      throw new Error('웹에서 응답을 생성 중입니다. 완료 후 대화를 전환하세요.');
+      throw new Error(t('웹에서 응답을 생성 중입니다. 완료 후 대화를 전환하세요.'));
     if (!browser.getComposer) return;
     let composer;
     try {
@@ -25,7 +26,7 @@ class ConversationController {
     }
     if ((await readComposer(composer.locator)).text.trim())
       throw new Error(
-        '웹 입력창에 작성 중인 내용이 있어 대화를 전환하지 않았습니다. 초안을 먼저 정리하세요.',
+        t('웹 입력창에 작성 중인 내용이 있어 대화를 전환하지 않았습니다. 초안을 먼저 정리하세요.'),
       );
   }
   async openWeb(url) {
@@ -49,7 +50,7 @@ class ConversationController {
       await browser.waitForComposer((text) => host.post({ type: 'status', text }));
     }
     if (host.stopRequested || this.revision !== revision || host.sessionId !== sessionId)
-      throw new Error('작업을 중지했습니다.');
+      throw new Error(t('작업을 중지했습니다.'));
     host.newWebChat = false;
   }
   saveSession() {
@@ -59,7 +60,7 @@ class ConversationController {
     const session = {
       id: host.sessionId,
       title:
-        customTitle || host.events.find((event) => event.role === 'user')?.text.slice(0, 70) || '새 대화',
+        customTitle || host.events.find((event) => event.role === 'user')?.text.slice(0, 70) || t('새 대화'),
       ...(customTitle ? { customTitle } : {}),
       updated: Date.now(),
       events: host.events,
@@ -73,7 +74,7 @@ class ConversationController {
   async newChat() {
     const host = this.host;
     if (host.starting || host.switchingBrowser || host.sessionSwitching || host.agent?.running)
-      throw new Error('진행 중인 작업을 먼저 중지하세요.');
+      throw new Error(t('진행 중인 작업을 먼저 중지하세요.'));
     this.invalidate();
     host.saveSession();
     host.sessionId = crypto.randomUUID();
@@ -83,7 +84,7 @@ class ConversationController {
     host.attachments = [];
     host.saveSession();
     host.view?.webview.postMessage(host.state());
-    host.post({ type: 'status', text: '새 대화 · 작업을 입력하세요.' });
+    host.post({ type: 'status', text: t('새 대화 · 작업을 입력하세요.') });
   }
   async showHistory() {
     return this.selectSession(
@@ -95,7 +96,7 @@ class ConversationController {
               description: new Date(item.updated).toLocaleString(),
               id: item.id,
             })),
-            { placeHolder: '이어서 작업할 대화' },
+            { placeHolder: t('이어서 작업할 대화') },
           )
         )?.id,
     );
@@ -146,7 +147,7 @@ class ConversationController {
     const host = this.host,
       window = this.vscode.window;
     if (host.starting || host.switchingBrowser || host.sessionSwitching || host.agent?.running)
-      throw new Error('진행 중인 작업을 마친 뒤 기록을 관리하세요.');
+      throw new Error(t('진행 중인 작업을 마친 뒤 기록을 관리하세요.'));
     if (!['rename', 'delete', 'deleteAll'].includes(action)) return;
     const session = host.sessions.find((item) => item.id === id);
     if (action !== 'deleteAll' && !session) return;
@@ -157,32 +158,32 @@ class ConversationController {
     try {
       if (action === 'rename') {
         const title = await window.showInputBox({
-          title: 'VS Code 대화 이름 변경',
+          title: t('VS Code 대화 이름 변경'),
           value: session.title,
-          prompt: 'VS Code 기록에 표시할 제목(최대 80자). Copilot 웹 제목은 유지됩니다.',
+          prompt: t('VS Code 기록에 표시할 제목(최대 80자). Copilot 웹 제목은 유지됩니다.'),
           validateInput: (value) =>
             !value.trim()
-              ? '제목을 입력하세요.'
+              ? t('제목을 입력하세요.')
               : value.trim().length > 80
-                ? '80자 이하로 입력하세요.'
+                ? t('80자 이하로 입력하세요.')
                 : undefined,
         });
         if (title === undefined || this.revision !== revision) return;
         if (typeof title !== 'string' || !title.trim() || title.trim().length > 80)
-          throw new Error('제목은 1~80자로 입력하세요.');
+          throw new Error(t('제목은 1~80자로 입력하세요.'));
         session.title = session.customTitle = title.trim();
       } else {
         const targetIds = new Set(action === 'deleteAll' ? host.sessions.map((item) => item.id) : [id]);
         const label =
           action === 'deleteAll'
-            ? '이 작업 영역의 VS Code 대화 기록을 모두 삭제할까요?'
-            : `“${session.title}”의 VS Code 대화 기록을 삭제할까요?`;
+            ? t('이 작업 영역의 VS Code 대화 기록을 모두 삭제할까요?')
+            : t('“{0}”의 VS Code 대화 기록을 삭제할까요?', session.title);
         if (
           (await window.showWarningMessage(
             label,
-            { modal: true, detail: 'Copilot 웹 대화와 프로젝트 파일은 삭제하지 않습니다.' },
-            '삭제',
-          )) !== '삭제'
+            { modal: true, detail: t('Copilot 웹 대화와 프로젝트 파일은 삭제하지 않습니다.') },
+            t('삭제'),
+          )) !== t('삭제')
         )
           return;
         if (this.revision !== revision) return;
@@ -201,8 +202,8 @@ class ConversationController {
         type: 'status',
         text:
           action === 'rename'
-            ? '대화 이름을 변경했습니다.'
-            : '선택한 VS Code 대화 기록을 삭제했습니다. 웹 대화는 유지됩니다.',
+            ? t('대화 이름을 변경했습니다.')
+            : t('선택한 VS Code 대화 기록을 삭제했습니다. 웹 대화는 유지됩니다.'),
       });
     } finally {
       host.sessionSwitching = false;
@@ -222,11 +223,12 @@ class ConversationController {
     )
       return;
     if (host.newWebChat) {
-      if (manual) host.post({ type: 'status', text: '이 대화는 첫 요청을 보내면 새 웹 대화와 연결됩니다.' });
+      if (manual)
+        host.post({ type: 'status', text: t('이 대화는 첫 요청을 보내면 새 웹 대화와 연결됩니다.') });
       return;
     }
     if (!host.browser?.page || host.browser.page.isClosed() || !host.browser.readConversation) {
-      if (manual) throw new Error('먼저 Copilot을 연결하고 웹 대화를 여세요.');
+      if (manual) throw new Error(t('먼저 Copilot을 연결하고 웹 대화를 여세요.'));
       return;
     }
     host.syncing = true;
@@ -256,7 +258,7 @@ class ConversationController {
         if (manual)
           host.post({
             type: 'status',
-            text: '웹 대화 주소가 아직 정해지지 않았습니다. 웹에서 대화를 시작한 뒤 동기화하세요.',
+            text: t('웹 대화 주소가 아직 정해지지 않았습니다. 웹에서 대화를 시작한 뒤 동기화하세요.'),
           });
         return;
       }
@@ -283,8 +285,8 @@ class ConversationController {
         host.post({
           type: 'status',
           text: snapshot.messages.length
-            ? `웹 대화 동기화 · ${snapshot.messages.length}개 메시지 확인`
-            : '웹 대화 메시지 영역을 읽지 못했습니다. 현재 로컬 기록은 유지했습니다.',
+            ? t('웹 대화 동기화 · {0}개 메시지 확인', snapshot.messages.length)
+            : t('웹 대화 메시지 영역을 읽지 못했습니다. 현재 로컬 기록은 유지했습니다.'),
         });
     } finally {
       host.syncing = false;

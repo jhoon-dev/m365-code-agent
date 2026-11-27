@@ -1,4 +1,5 @@
 'use strict';
+const { t } = require('./localization');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 
@@ -41,7 +42,7 @@ function replyIdentity(value) {
   });
 }
 function conflict(values, filename) {
-  const error = new Error('같은 파일에 서로 다른 JSON 수정안이 있어 적용하지 않았습니다: ' + filename);
+  const error = new Error(t('같은 파일에 서로 다른 JSON 수정안이 있어 적용하지 않았습니다: ') + filename);
   error.code = 'AMBIGUOUS_REPLY';
   error.signature = createHash('sha256')
     .update([...new Set(values.map(replyIdentity))].sort().join('\0'))
@@ -66,7 +67,7 @@ function mergeReplies(values, requestId) {
       ...new Map(tools.flatMap((value) => value.calls).map((call) => [stableJson(call), call])).values(),
     ];
     if (calls.length > 8) {
-      const error = new Error('합친 도구 요청이 8개를 초과했습니다. 더 작은 묶음으로 요청해야 합니다.');
+      const error = new Error(t('합친 도구 요청이 8개를 초과했습니다. 더 작은 묶음으로 요청해야 합니다.'));
       error.code = 'INVALID_REPLY_SCHEMA';
       throw error;
     }

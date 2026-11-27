@@ -1,4 +1,5 @@
 'use strict';
+const { t } = require('./localization');
 
 class ModelController {
   constructor(host) {
@@ -35,7 +36,7 @@ class ModelController {
       const label = await browser.selectModel(id, (text) => host.post({ type: 'status', text }));
       host.selectedModel = id;
       host.post({ type: 'models', choices: host.modelChoices, selected: id });
-      host.post({ type: 'status', text: 'M365 모델 선택: ' + label });
+      host.post({ type: 'status', text: t('M365 모델 선택: ') + label });
     } catch (error) {
       host.post({ type: 'models', choices: host.modelChoices, selected: host.selectedModel });
       throw error;

@@ -1,8 +1,8 @@
 {
   "name": "m365-code-agent",
   "displayName": "M365 Code Agent",
-  "description": "Unofficial, experimental coding agent that uses your signed-in M365 Copilot through Edge to read, edit and delete files in a VS Code workspace.",
-  "version": "0.16.4",
+  "description": "%extension.description%",
+  "version": "0.17.0",
   "publisher": "jhoon-dev",
   "author": "jhoon-dev",
   "preview": true,
@@ -61,72 +61,72 @@
     "commands": [
       {
         "command": "m365Agent.open",
-        "title": "M365 Agent: 열기",
+        "title": "%command.m365Agent.open.title%",
         "icon": "$(robot)"
       },
       {
         "command": "m365Agent.connect",
-        "title": "M365 Agent: Copilot 연결 / 로그인"
+        "title": "%command.m365Agent.connect.title%"
       },
       {
         "command": "m365Agent.newChat",
-        "title": "M365 Agent: 새 대화"
+        "title": "%command.m365Agent.newChat.title%"
       },
       {
         "command": "m365Agent.stop",
-        "title": "M365 Agent: 작업 중지"
+        "title": "%command.m365Agent.stop.title%"
       },
       {
         "command": "m365Agent.diagnostics",
-        "title": "M365 Agent: 연결 진단"
+        "title": "%command.m365Agent.diagnostics.title%"
       },
       {
         "command": "m365Agent.checkWorkspace",
-        "title": "M365 Agent: 프로젝트 읽기·쓰기 점검"
+        "title": "%command.m365Agent.checkWorkspace.title%"
       },
       {
         "command": "m365Agent.syncWeb",
-        "title": "M365 Agent: 현재 웹 대화 동기화"
+        "title": "%command.m365Agent.syncWeb.title%"
       },
       {
         "command": "m365Agent.refreshModels",
-        "title": "M365 Agent: 웹 모델 목록 불러오기"
+        "title": "%command.m365Agent.refreshModels.title%"
       },
       {
         "command": "m365Agent.showBrowser",
-        "title": "M365 Agent: Copilot 브라우저 열기"
+        "title": "%command.m365Agent.showBrowser.title%"
       },
       {
         "command": "m365Agent.editorBrowser",
-        "title": "M365 Agent: VS Code 브라우저로 전환"
+        "title": "%command.m365Agent.editorBrowser.title%"
       },
       {
         "command": "m365Agent.explainSelection",
-        "title": "선택 코드 설명",
+        "title": "%command.m365Agent.explainSelection.title%",
         "category": "M365 Agent",
         "enablement": "isWorkspaceTrusted && resourceScheme == file && editorHasSelection"
       },
       {
         "command": "m365Agent.reviewSelection",
-        "title": "선택 코드 리뷰",
+        "title": "%command.m365Agent.reviewSelection.title%",
         "category": "M365 Agent",
         "enablement": "isWorkspaceTrusted && resourceScheme == file && editorHasSelection"
       },
       {
         "command": "m365Agent.editSelection",
-        "title": "선택 코드 수정…",
+        "title": "%command.m365Agent.editSelection.title%",
         "category": "M365 Agent",
         "enablement": "isWorkspaceTrusted && resourceScheme == file && editorHasSelection && !editorReadonly"
       },
       {
         "command": "m365Agent.fixDiagnostic",
-        "title": "오류·경고 수정안 요청",
+        "title": "%command.m365Agent.fixDiagnostic.title%",
         "category": "M365 Agent",
         "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "m365Agent.mcpTools",
-        "title": "M365 Agent: 조회용 MCP 도구 선택",
+        "title": "%command.m365Agent.mcpTools.title%",
         "enablement": "isWorkspaceTrusted"
       }
     ],
@@ -191,7 +191,7 @@
       "m365AgentLauncher": [
         {
           "id": "m365Agent.launcher",
-          "name": "M365 Agent 열기"
+          "name": "%view.launcher.name%"
         }
       ],
       "m365Agent": [
@@ -205,30 +205,46 @@
     "viewsWelcome": [
       {
         "view": "m365Agent.launcher",
-        "contents": "채팅은 오른쪽 보조 사이드바에서 열립니다.\n[채팅 열기](command:m365Agent.open)"
+        "contents": "%view.launcher.welcome%"
       }
     ],
     "configuration": {
       "title": "M365 Code Agent",
       "properties": {
+        "m365Agent.language": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "en",
+            "ko"
+          ],
+          "default": "auto",
+          "scope": "application",
+          "enumItemLabels": [
+            "%language.auto%",
+            "English",
+            "한국어"
+          ],
+          "description": "%language.description%"
+        },
         "m365Agent.experimental.modelProvider.maxPromptCharacters": {
           "type": "number",
           "default": 120000,
           "minimum": 4000,
           "maximum": 120000,
           "scope": "application",
-          "description": "실험용 모델 제공자의 웹 요청 글자 한도. Webview의 한도와 별개입니다. 오래된 완결 교환을 생략할 수 있지만 System 지시·모든 사용자 요청·최근 도구 교환·도구 정의는 유지합니다. 웹 입력창의 실제 한도가 우선합니다."
+          "description": "%configuration.experimental.modelProvider.maxPromptCharacters.description%"
         },
         "m365Agent.experimental.modelProvider.enabled": {
           "type": "boolean",
           "default": false,
           "scope": "application",
-          "description": "실험용 M365 Web 모델을 VS Code 모델 선택기에 제공합니다. 별도 전용 브라우저에서 다시 로그인해야 합니다. VS Code 도구에는 Webview의 해시 검증·수정 범위·되돌리기가 적용되지 않으며 VS Code 승인 정책을 따릅니다."
+          "description": "%configuration.experimental.modelProvider.enabled.description%"
         },
         "m365Agent.copilotUrl": {
           "type": "string",
           "default": "https://m365.cloud.microsoft/chat",
-          "description": "회사 M365 Copilot 또는 Code Assistant 에이전트의 웹 주소"
+          "description": "%configuration.copilotUrl.description%"
         },
         "m365Agent.browserChannel": {
           "type": "string",
@@ -237,7 +253,7 @@
             "chrome"
           ],
           "default": "msedge",
-          "description": "PC에 설치된 브라우저. 별도 브라우저 확장은 필요하지 않습니다."
+          "description": "%configuration.browserChannel.description%"
         },
         "m365Agent.maxRounds": {
           "type": "number",
@@ -245,7 +261,7 @@
           "minimum": 1,
           "maximum": 500,
           "multipleOf": 1,
-          "description": "작업당 Copilot 요청의 안전 한도. 기본 100회, 최대 500회입니다. 새 결과 없이 같은 읽기·실패·명령 결과가 반복되면 한도 전에 중지합니다. 직접 지정한 값은 유지합니다. 요청 횟수 무제한을 켠 요청에는 이 한도를 적용하지 않습니다."
+          "description": "%configuration.maxRounds.description%"
         },
         "m365Agent.responseTimeoutSeconds": {
           "type": "number",
@@ -258,26 +274,26 @@
           "default": 600,
           "minimum": 30,
           "maximum": 1800,
-          "description": "처음 요청을 보관한 채 로그인·MFA와 입력창 준비를 기다릴 시간(초). 준비되면 자동 전송합니다."
+          "description": "%configuration.loginTimeoutSeconds.description%"
         },
         "m365Agent.modelButtonSelector": {
           "type": "string",
           "default": "",
-          "description": "자동 감지가 실패할 때 지정할 웹 모델 선택 버튼의 CSS 선택자. 실제 메뉴에 표시된 모델만 제공합니다."
+          "description": "%configuration.modelButtonSelector.description%"
         },
         "m365Agent.maxPromptCharacters": {
           "type": "number",
           "default": 120000,
           "minimum": 4000,
           "maximum": 120000,
-          "description": "웹에 보낼 요청의 최대 글자 수. 입력창 한도가 더 작으면 전송 전에 문맥을 자동으로 줄입니다."
+          "description": "%configuration.maxPromptCharacters.description%"
         },
         "m365Agent.maxFileSizeMB": {
           "type": "number",
           "default": 16,
           "minimum": 1,
           "maximum": 128,
-          "description": "로컬에서 읽고 부분 수정할 텍스트 파일의 최대 크기(MB). 웹에는 필요한 범위만 전달합니다."
+          "description": "%configuration.maxFileSizeMB.description%"
         },
         "m365Agent.commandOutputEncoding": {
           "type": "string",
@@ -286,22 +302,22 @@
             "cp949"
           ],
           "default": "utf8",
-          "description": "명령 출력 인코딩과 Windows 코드페이지. CP949 전용 도구를 실행할 때 cp949로 설정하세요."
+          "description": "%configuration.commandOutputEncoding.description%"
         },
         "m365Agent.composerSelector": {
           "type": "string",
           "default": "",
-          "description": "자동 감지가 실패할 때 지정할 Copilot 입력창 CSS 선택자"
+          "description": "%configuration.composerSelector.description%"
         },
         "m365Agent.sendButtonSelector": {
           "type": "string",
           "default": "",
-          "description": "선택 사항: 전송 버튼 CSS 선택자. 비어 있으면 버튼을 자동 감지하고 제출 여부를 확인합니다."
+          "description": "%configuration.sendButtonSelector.description%"
         },
         "m365Agent.responseSelector": {
           "type": "string",
           "default": "",
-          "description": "선택 사항: Copilot 응답 컨테이너 CSS 선택자"
+          "description": "%configuration.responseSelector.description%"
         },
         "m365Agent.browserView": {
           "type": "string",
@@ -310,53 +326,53 @@
             "external"
           ],
           "default": "editor",
-          "description": "Copilot 브라우저 표시 위치. editor는 VS Code 편집기 탭에 실제 자동화 브라우저 화면을 표시합니다. 외부 인증 창이 필요한 환경에서는 external을 사용하세요."
+          "description": "%configuration.browserView.description%"
         },
         "m365Agent.attachmentMaxFileSizeMB": {
           "type": "number",
           "default": 64,
           "minimum": 1,
           "maximum": 512,
-          "description": "이미지·문서·동영상 원본 파일 하나의 최대 크기(MB). 실제 Copilot 웹 업로드 한도가 우선합니다."
+          "description": "%configuration.attachmentMaxFileSizeMB.description%"
         },
         "m365Agent.attachmentMaxTotalSizeMB": {
           "type": "number",
           "default": 100,
           "minimum": 1,
           "maximum": 1024,
-          "description": "한 요청에서 선택한 원본 첨부 파일의 합계 최대 크기(MB). 동영상은 로컬에서 장면 3개를 추출해 업로드합니다."
+          "description": "%configuration.attachmentMaxTotalSizeMB.description%"
         },
         "m365Agent.attachmentTimeoutSeconds": {
           "type": "number",
           "default": 120,
           "minimum": 5,
           "maximum": 600,
-          "description": "Copilot 화면에서 첨부 업로드 완료를 확인하는 대기 시간(초)."
+          "description": "%configuration.attachmentTimeoutSeconds.description%"
         },
         "m365Agent.attachmentInputSelector": {
           "type": "string",
           "default": "",
-          "description": "자동 감지가 실패할 때 지정할 Copilot 로컬 파일 업로드 input[type=file] CSS 선택자."
+          "description": "%configuration.attachmentInputSelector.description%"
         },
         "m365Agent.attachmentButtonSelector": {
           "type": "string",
           "default": "",
-          "description": "자동 감지가 실패할 때 지정할 Copilot 로컬 파일 첨부 메뉴 버튼 CSS 선택자."
+          "description": "%configuration.attachmentButtonSelector.description%"
         },
         "m365Agent.attachmentReadySelector": {
           "type": "string",
           "default": "",
-          "description": "업로드된 파일 이름이 표시되는 입력창 안 첨부 카드 CSS 선택자."
+          "description": "%configuration.attachmentReadySelector.description%"
         },
         "m365Agent.attachmentErrorSelector": {
           "type": "string",
           "default": "",
-          "description": "입력창 안 파일 업로드 오류 메시지 CSS 선택자."
+          "description": "%configuration.attachmentErrorSelector.description%"
         },
         "m365Agent.attachmentScopeSelector": {
           "type": "string",
           "default": "",
-          "description": "입력창과 첨부 카드·업로드 상태를 포함하는 Copilot 작성 영역의 CSS 선택자. 대화 이력은 포함하지 마세요."
+          "description": "%configuration.attachmentScopeSelector.description%"
         }
       }
     }

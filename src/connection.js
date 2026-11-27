@@ -1,15 +1,16 @@
 'use strict';
+const { t } = require('./localization');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const os = require('node:os');
 
 function safeMessage(value, profile = '') {
-  let text = String(value || '상세 오류 없음').split(/\r?\n/)[0];
+  let text = String(value || t('상세 오류 없음')).split(/\r?\n/)[0];
   if (profile) {
-    text = text.split(profile).join('<전용 프로필>');
+    text = text.split(profile).join(t('<전용 프로필>'));
     const storage = path.dirname(profile);
-    if (path.isAbsolute(storage)) text = text.split(storage).join('<확장 저장소>');
+    if (path.isAbsolute(storage)) text = text.split(storage).join(t('<확장 저장소>'));
   }
   return text
     .replace(/https?:\/\/[^\s<>"']+/gi, (value) => {
@@ -17,7 +18,7 @@ function safeMessage(value, profile = '') {
         const url = new URL(value);
         return url.origin + url.pathname;
       } catch {
-        return '<주소>';
+        return t('<주소>');
       }
     })
     .slice(0, 600);
@@ -27,44 +28,51 @@ function connectionFailure(error, stage, options = {}) {
   const text = String(error?.message || error),
     native = text.match(/\b(?:ERR_[A-Z_]+|EACCES|EPERM|ENOTDIR|ENOSPC)\b/)?.[0];
   let code = 'BROWSER_CONNECTION_FAILED',
-    hint = '연결 진단의 실패 단계와 원인 코드를 확인하세요.';
+    hint = t('연결 진단의 실패 단계와 원인 코드를 확인하세요.');
   if (stage === 'url') {
     code = 'BROWSER_URL_INVALID';
-    hint = 'm365Agent.copilotUrl에 회사 M365 Copilot의 HTTPS 주소를 설정하세요.';
+    hint = t('m365Agent.copilotUrl에 회사 M365 Copilot의 HTTPS 주소를 설정하세요.');
   } else if (stage === 'profile') {
     code = 'PROFILE_ACCESS_FAILED';
-    hint = 'VS Code 확장 저장소에 전용 프로필을 만들 수 없습니다. 폴더 접근 권한과 저장 공간을 확인하세요.';
+    hint = t(
+      'VS Code 확장 저장소에 전용 프로필을 만들 수 없습니다. 폴더 접근 권한과 저장 공간을 확인하세요.',
+    );
   } else if (stage === 'panel') {
     code = 'BROWSER_PANEL_FAILED';
-    hint =
-      'VS Code 브라우저 탭을 만들지 못했습니다. 창을 다시 로드하거나 브라우저 표시 위치를 external로 바꿔 확인하세요.';
+    hint = t(
+      'VS Code 브라우저 탭을 만들지 못했습니다. 창을 다시 로드하거나 브라우저 표시 위치를 external로 바꿔 확인하세요.',
+    );
   } else if (
     /ProcessSingleton|SingletonLock|user data directory.*in use|profile.*(?:in use|locked)/i.test(text)
   ) {
     code = 'PROFILE_IN_USE';
-    hint =
-      '다른 VS Code 창의 M365 Agent가 같은 전용 프로필을 사용 중인지 확인하고 해당 연결을 종료한 뒤 다시 연결하세요.';
+    hint = t(
+      '다른 VS Code 창의 M365 Agent가 같은 전용 프로필을 사용 중인지 확인하고 해당 연결을 종료한 뒤 다시 연결하세요.',
+    );
   } else if (/executable.*(?:doesn.t exist|not found|does not exist)|distribution.*not found/i.test(text)) {
     code = 'BROWSER_NOT_FOUND';
-    hint =
-      '선택한 Edge 또는 Chrome이 이 PC에 설치되어 있는지 확인하세요. 별도 Playwright 브라우저 설치는 필요하지 않습니다.';
+    hint = t(
+      '선택한 Edge 또는 Chrome이 이 PC에 설치되어 있는지 확인하세요. 별도 Playwright 브라우저 설치는 필요하지 않습니다.',
+    );
   } else if (/ERR_CERT_/i.test(text)) {
     code = 'BROWSER_CERTIFICATE_FAILED';
-    hint = '회사 인증서 체인을 확인하고 같은 M365 주소가 일반 브라우저에서 열리는지 확인하세요.';
+    hint = t('회사 인증서 체인을 확인하고 같은 M365 주소가 일반 브라우저에서 열리는지 확인하세요.');
   } else if (/ERR_.*(?:PROXY|TUNNEL)/i.test(text)) {
     code = 'BROWSER_PROXY_FAILED';
-    hint = '회사 프록시·VPN 연결과 일반 브라우저의 M365 접속 상태를 확인하세요.';
+    hint = t('회사 프록시·VPN 연결과 일반 브라우저의 M365 접속 상태를 확인하세요.');
   } else if (/EACCES|EPERM|access.*denied|permission denied/i.test(text)) {
     code = 'BROWSER_ACCESS_DENIED';
-    hint =
-      '브라우저 실행·전용 프로필 접근 권한을 확인하세요. 회사 보안 정책에서 거절한 경우 관리자 확인이 필요합니다.';
+    hint = t(
+      '브라우저 실행·전용 프로필 접근 권한을 확인하세요. 회사 보안 정책에서 거절한 경우 관리자 확인이 필요합니다.',
+    );
   } else if (stage === 'navigation' && (/Timeout|timed out/i.test(text) || error?.name === 'TimeoutError')) {
     code = 'BROWSER_NAVIGATION_TIMEOUT';
-    hint =
-      '브라우저는 실행됐지만 M365 페이지 로딩이 끝나지 않았습니다. 현재 화면을 확인한 뒤 다시 연결하세요.';
+    hint = t(
+      '브라우저는 실행됐지만 M365 페이지 로딩이 끝나지 않았습니다. 현재 화면을 확인한 뒤 다시 연결하세요.',
+    );
   } else if (stage === 'navigation') {
     code = 'BROWSER_NAVIGATION_FAILED';
-    hint = '일반 브라우저에서 M365 주소와 네트워크 연결을 확인한 뒤 다시 연결하세요.';
+    hint = t('일반 브라우저에서 M365 주소와 네트워크 연결을 확인한 뒤 다시 연결하세요.');
   }
   return {
     stage,
@@ -92,7 +100,7 @@ function connectionFailure(error, stage, options = {}) {
 function connectionError(error, stage, options) {
   const info = connectionFailure(error, stage, options);
   const wrapped = new Error(
-    `M365 브라우저 연결 실패 [${info.code}] · 단계: ${info.stage}\n${info.detail}\n${info.hint}`,
+    t('M365 브라우저 연결 실패 [{0}] · 단계: {1}\n{2}\n{3}', info.code, info.stage, info.detail, info.hint),
     { cause: error },
   );
   wrapped.code = info.code;

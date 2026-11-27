@@ -1,4 +1,5 @@
 'use strict';
+const { t } = require('./localization');
 const { createHash, randomUUID } = require('node:crypto');
 const { validateCopilotUrl } = require('./browser');
 const { conversationUrl } = require('./web-history');
@@ -30,7 +31,7 @@ function cleanMessages(messages) {
 function webUrl(value) {
   const info = conversationUrl(validateCopilotUrl(value));
   if (!info.restorable)
-    throw sessionError('웹 대화 주소를 복원할 수 없습니다. 새 웹 대화를 자동으로 만들지 않았습니다.');
+    throw sessionError(t('웹 대화 주소를 복원할 수 없습니다. 새 웹 대화를 자동으로 만들지 않았습니다.'));
   return info.url;
 }
 
@@ -88,12 +89,14 @@ class ModelConversations {
   resolve(messages, options, endpoint) {
     if (this.invalid)
       throw sessionError(
-        '저장된 웹 대화 매핑을 읽지 못했습니다. 다른 대화로 연결하거나 새 웹 대화를 자동 생성하지 않았습니다.',
+        t(
+          '저장된 웹 대화 매핑을 읽지 못했습니다. 다른 대화로 연결하거나 새 웹 대화를 자동 생성하지 않았습니다.',
+        ),
       );
     const scope = hash(validateCopilotUrl(endpoint));
     const explicit = options.modelOptions?.m365ConversationId;
     if (explicit !== undefined && (typeof explicit !== 'string' || !explicit.trim() || explicit.length > 200))
-      throw sessionError('m365ConversationId는 1~200자의 대화별 고유 문자열이어야 합니다.');
+      throw sessionError(t('m365ConversationId는 1~200자의 대화별 고유 문자열이어야 합니다.'));
     const explicitKey = explicit === undefined ? undefined : hash(explicit);
     const matches = [];
     for (const message of messages) {
@@ -104,7 +107,9 @@ class ModelConversations {
             const record = this.records.get(match[1]);
             if (!record)
               throw sessionError(
-                '이 VS Code 대화의 웹 연결 정보를 찾지 못했습니다. 새 웹 대화를 자동으로 만들지 않았습니다.',
+                t(
+                  '이 VS Code 대화의 웹 연결 정보를 찾지 못했습니다. 새 웹 대화를 자동으로 만들지 않았습니다.',
+                ),
               );
             matches.push({ record, turn: match[2] });
           }
@@ -114,7 +119,7 @@ class ModelConversations {
           );
           if (!record && !matches.length)
             throw sessionError(
-              '도구 호출의 웹 대화 연결 정보를 찾지 못했습니다. 새 웹 대화를 자동으로 만들지 않았습니다.',
+              t('도구 호출의 웹 대화 연결 정보를 찾지 못했습니다. 새 웹 대화를 자동으로 만들지 않았습니다.'),
             );
           if (record) matches.push({ record, turn: record.calls.find((call) => call.id === part.id).turn });
         }
@@ -122,26 +127,30 @@ class ModelConversations {
     }
     const ids = new Set(matches.map((match) => match.record.id));
     if (ids.size > 1)
-      throw sessionError('서로 다른 VS Code 대화의 연결 정보가 섞여 있어 웹 요청을 보내지 않았습니다.');
+      throw sessionError(t('서로 다른 VS Code 대화의 연결 정보가 섞여 있어 웹 요청을 보내지 않았습니다.'));
     const explicitRecord =
       explicitKey && [...this.records.values()].find((record) => record.explicitKey === explicitKey);
     if (explicitKey && matches.length && matches.at(-1).record.explicitKey !== explicitKey)
-      throw sessionError('명시한 대화 ID와 대화 기록의 웹 연결이 일치하지 않습니다.');
+      throw sessionError(t('명시한 대화 ID와 대화 기록의 웹 연결이 일치하지 않습니다.'));
     const record = explicitRecord || matches.at(-1)?.record;
     if (record) {
       if (record.scope !== scope)
         throw sessionError(
-          '이 대화의 Copilot 연결 설정이 바뀌었습니다. 기존 웹 대화에 다른 설정의 요청을 보내지 않았습니다.',
+          t(
+            '이 대화의 Copilot 연결 설정이 바뀌었습니다. 기존 웹 대화에 다른 설정의 요청을 보내지 않았습니다.',
+          ),
         );
       return { record, cursor: matches.at(-1)?.turn, explicit: Boolean(explicitKey) };
     }
     if (!explicitKey && messages.some((message) => message.role === 'assistant'))
       throw sessionError(
-        'VS Code가 이 대화의 복원 식별자를 전달하지 않았습니다. 기존 대화를 임의로 추정하거나 새 웹 대화를 만들지 않았습니다. 모델을 처음 선택했다면 새 VS Code Chat에서 시작하세요.',
+        t(
+          'VS Code가 이 대화의 복원 식별자를 전달하지 않았습니다. 기존 대화를 임의로 추정하거나 새 웹 대화를 만들지 않았습니다. 모델을 처음 선택했다면 새 VS Code Chat에서 시작하세요.',
+        ),
       );
     if (this.records.size >= 1000)
       throw sessionError(
-        '웹 대화 매핑 한도에 도달했습니다. 기존 매핑을 지우거나 새 웹 대화를 자동으로 만들지 않았습니다.',
+        t('웹 대화 매핑 한도에 도달했습니다. 기존 매핑을 지우거나 새 웹 대화를 자동으로 만들지 않았습니다.'),
       );
     const created = {
       id: randomUUID(),
@@ -159,7 +168,9 @@ class ModelConversations {
   check(binding) {
     if (!binding.explicit && binding.cursor && binding.cursor !== binding.record.turns.at(-1))
       throw sessionError(
-        '이 대화가 이전 응답에서 분기되었거나 동시에 변경되었습니다. 다른 분기의 웹 대화에 요청을 보내지 않았습니다.',
+        t(
+          '이 대화가 이전 응답에서 분기되었거나 동시에 변경되었습니다. 다른 분기의 웹 대화에 요청을 보내지 않았습니다.',
+        ),
       );
   }
 
@@ -167,7 +178,7 @@ class ModelConversations {
     if (!info?.restorable) return;
     const url = webUrl(info.url);
     if (record.url && record.url !== url)
-      throw sessionError('응답 도중 웹 대화가 바뀌어 결과를 전달하지 않았습니다.');
+      throw sessionError(t('응답 도중 웹 대화가 바뀌어 결과를 전달하지 않았습니다.'));
     record.url = url;
   }
 

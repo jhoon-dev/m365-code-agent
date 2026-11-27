@@ -1,12 +1,13 @@
 // @ts-check
 'use strict';
+const { t } = require('./localization');
 const { buildPrompt, newId, normalizeToolCall, toolCallLimit } = require('./protocol');
 const { inspectProject } = require('./project');
 const { TaskProgress } = require('./task-progress');
 const { commandEnvironment } = require('./terminal');
 /** @param {string | undefined} value @param {string} field @returns {string} */
 function requiredText(value, field) {
-  if (typeof value !== 'string' || !value) throw new Error(`${field} 문자열이 필요합니다.`);
+  if (typeof value !== 'string' || !value) throw new Error(t('{0} 문자열이 필요합니다.', field));
   return value;
 }
 
@@ -56,9 +57,9 @@ class CodingAgent {
   }
   /** @param {string} task */
   async run(task, extraContext = '') {
-    if (this.running) throw new Error('이미 진행 중인 작업이 있습니다.');
+    if (this.running) throw new Error(t('이미 진행 중인 작업이 있습니다.'));
     if (typeof task !== 'string' || !task.trim() || task.length > 8000)
-      throw new Error('요청은 1~8,000자로 입력하세요.');
+      throw new Error(t('요청은 1~8,000자로 입력하세요.'));
     this.running = true;
     this.cancelled = false;
     /** @type {import('../types/contracts').HistoryEntry[]} */
@@ -86,15 +87,24 @@ class CodingAgent {
       history.push(project.history);
       if (project.discovered && !project.read && !project.inspected)
         throw new Error(
-          '프로젝트 파일 본문을 읽지 못했습니다. 작업 기록의 파일별 오류를 확인하세요. 분석이나 수정이 완료된 것으로 처리하지 않았습니다.',
+          t(
+            '프로젝트 파일 본문을 읽지 못했습니다. 작업 기록의 파일별 오류를 확인하세요. 분석이나 수정이 완료된 것으로 처리하지 않았습니다.',
+          ),
         );
       this.emit({
         type: 'message',
         role: 'system',
-        text: `프로젝트 ${require('node:path').basename(this.store.root)} · ${project.discovered}개 파일 발견 · ${project.read}개 본문을 먼저 읽었습니다.${project.inspected ? ' 파일 정보·해시 ' + project.inspected + '개 확인.' : ''}${this.mode !== 'agent' ? ' 이번 요청은 분석·계획으로 처리하며 파일을 수정하지 않습니다.' : ''}`,
+        text: t(
+          '프로젝트 {0} · {1}개 파일 발견 · {2}개 본문을 먼저 읽었습니다.{3}{4}',
+          require('node:path').basename(this.store.root),
+          project.discovered,
+          project.read,
+          project.inspected ? t(' 파일 정보·해시 ') + project.inspected + t('개 확인.') : '',
+          this.mode !== 'agent' ? t(' 이번 요청은 분석·계획으로 처리하며 파일을 수정하지 않습니다.') : '',
+        ),
       });
       for (let round = 1; this.unlimitedRounds || round <= this.maxRounds; round++) {
-        if (this.cancelled) throw new Error('작업을 중지했습니다.');
+        if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
         const id = newId();
         const limit = this.unlimitedRounds ? null : this.maxRounds;
         this.emit({
@@ -106,7 +116,11 @@ class CodingAgent {
         });
         this.emit({
           type: 'status',
-          text: `요청 ${round}회 · ${this.unlimitedRounds ? '무제한' : '안전 한도 ' + this.maxRounds + '회'} · Copilot 요청 준비`,
+          text: t(
+            '요청 {0}회 · {1} · Copilot 요청 준비',
+            round,
+            this.unlimitedRounds ? t('무제한') : t('안전 한도 ') + this.maxRounds + t('회'),
+          ),
         });
         /** @type {import('../types/contracts').AgentReply | undefined} */
         let reply;
@@ -151,18 +165,25 @@ class CodingAgent {
             promptBudget = Math.min(promptBudget, error.maxCharacters);
             this.emit({
               type: 'status',
-              text: `Copilot 입력 한도 ${promptBudget.toLocaleString()}자에 맞춰 문맥을 줄이고 있습니다. 아직 전송하지 않았습니다.`,
+              text: t(
+                'Copilot 입력 한도 {0}자에 맞춰 문맥을 줄이고 있습니다. 아직 전송하지 않았습니다.',
+                promptBudget.toLocaleString(),
+              ),
             });
           }
         }
-        if (this.cancelled) throw new Error('작업을 중지했습니다.');
-        if (!reply) throw new Error('Copilot 응답을 받지 못했습니다.');
+        if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
+        if (!reply) throw new Error(t('Copilot 응답을 받지 못했습니다.'));
         if (reply.kind === 'done') {
           this.emit({ type: 'message', role: 'assistant', text: reply.message });
           this.emit({
             type: 'message',
             role: 'system',
-            text: `이번 요청에서 실제 적용한 파일: ${appliedFiles}개${appliedFiles === 0 ? ' · 파일 변경은 발생하지 않았습니다.' : ''}`,
+            text: t(
+              '이번 요청에서 실제 적용한 파일: {0}개{1}',
+              appliedFiles,
+              appliedFiles === 0 ? t(' · 파일 변경은 발생하지 않았습니다.') : '',
+            ),
           });
           return { status: 'done', message: reply.message, appliedFiles };
         }
@@ -170,7 +191,7 @@ class CodingAgent {
           if (reply.deferred?.length)
             this.emit({
               type: 'status',
-              text: '도구 요청을 먼저 처리합니다. 함께 온 수정안은 도구 결과 확인 뒤 다시 받습니다.',
+              text: t('도구 요청을 먼저 처리합니다. 함께 온 수정안은 도구 결과 확인 뒤 다시 받습니다.'),
             });
           /** @type {import('../types/contracts').ToolObservation[]} */
           const observations = [];
@@ -178,16 +199,23 @@ class CodingAgent {
           const batchLimit = toolCallLimit(promptBudget);
           for (const [index, rawCall] of reply.calls.entries()) {
             const call = normalizeToolCall(rawCall);
-            if (this.cancelled) throw new Error('작업을 중지했습니다.');
+            if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
             if (index >= batchLimit) {
               observations.push({
                 call,
-                error: `이번 요청의 도구 예산은 ${batchLimit}개입니다. 이 호출은 실행하지 않았습니다. 결과를 확인한 뒤 다음 요청에서 다시 호출하세요.`,
+                error: t(
+                  '이번 요청의 도구 예산은 {0}개입니다. 이 호출은 실행하지 않았습니다. 결과를 확인한 뒤 다음 요청에서 다시 호출하세요.',
+                  batchLimit,
+                ),
               });
               continue;
             }
             const toolId = newId();
-            const label = `${call.name} · ${call.path || call.query || call.command || call.tool || '프로젝트'}`;
+            const label = t(
+              '{0} · {1}',
+              call.name,
+              call.path || call.query || call.command || call.tool || t('프로젝트'),
+            );
             this.emit({ type: 'tool', id: toolId, label, state: 'running' });
             try {
               /** @type {import('../types/contracts').ToolResult} */
@@ -223,20 +251,20 @@ class CodingAgent {
               else if (call.name === 'run_command') {
                 if (this.mode !== 'agent' || !this.runCommand)
                   throw new Error(
-                    '이번 요청은 읽기 전용 분석입니다. 명령 실행이 필요하면 실행할 작업을 요청하세요.',
+                    t('이번 요청은 읽기 전용 분석입니다. 명령 실행이 필요하면 실행할 작업을 요청하세요.'),
                   );
                 result = await this.runCommand(requiredText(call.command, 'command'));
               } else if (['mcp_list_tools', 'mcp_tool_info', 'mcp_call'].includes(call.name)) {
                 if (this.mode !== 'agent' || !this.mcp)
-                  throw new Error('MCP 실행은 조회용 도구를 선택한 Agent 요청에서만 사용할 수 있습니다.');
+                  throw new Error(t('MCP 실행은 조회용 도구를 선택한 Agent 요청에서만 사용할 수 있습니다.'));
                 if (call.name === 'mcp_list_tools') result = this.mcp.list(resultBudget, call.offset);
                 else if (call.name === 'mcp_tool_info')
                   result = this.mcp.info(requiredText(call.tool, 'tool'), resultBudget);
                 else {
-                  if (!call.input) throw new Error('MCP input 객체가 필요합니다.');
+                  if (!call.input) throw new Error(t('MCP input 객체가 필요합니다.'));
                   result = await this.mcp.invoke(requiredText(call.tool, 'tool'), call.input, resultBudget);
                 }
-              } else throw new Error('지원하지 않는 도구입니다.');
+              } else throw new Error(t('지원하지 않는 도구입니다.'));
               if (Array.isArray(result.files))
                 while (JSON.stringify(result).length > resultBudget && result.files.length > 1) {
                   result.files.pop();
@@ -253,7 +281,7 @@ class CodingAgent {
               }
               if (JSON.stringify(result).length > 22000)
                 throw new Error(
-                  '파일 또는 검색 결과가 너무 큽니다. 더 작은 파일이나 검색 범위를 요청하세요.',
+                  t('파일 또는 검색 결과가 너무 큽니다. 더 작은 파일이나 검색 범위를 요청하세요.'),
                 );
               observations.push({ call, result });
               fresh = progress.observe(call, result) || fresh;
@@ -265,13 +293,18 @@ class CodingAgent {
                 state: failed ? 'error' : 'done',
                 detail:
                   typeof result.content === 'string'
-                    ? `${result.content.length.toLocaleString()}자 읽음 · ${result.startLine}~${result.endLine}줄`
+                    ? t(
+                        '{0}자 읽음 · {1}~{2}줄',
+                        result.content.length.toLocaleString(),
+                        result.startLine,
+                        result.endLine,
+                      )
                     : ['file_info', 'folder_info'].includes(call.name) && result.size !== undefined
-                      ? `${result.size.toLocaleString()} bytes · 파일 해시 확인`
+                      ? t('{0} bytes · 파일 해시 확인', result.size.toLocaleString())
                       : result.approved === false
-                        ? '실행 거절됨'
+                        ? t('실행 거절됨')
                         : result.exitCode !== undefined
-                          ? `종료 코드 ${result.exitCode}${result.timedOut ? ' · 시간 초과' : ''}`
+                          ? t('종료 코드 {0}{1}', result.exitCode, result.timedOut ? t(' · 시간 초과') : '')
                           : undefined,
               });
             } catch (error) {
@@ -298,7 +331,7 @@ class CodingAgent {
           try {
             if (this.mode !== 'agent')
               throw new Error(
-                '이번 요청은 분석·계획이므로 파일을 수정하지 않습니다. 설명 또는 계획으로 답변하세요.',
+                t('이번 요청은 분석·계획이므로 파일을 수정하지 않습니다. 설명 또는 계획으로 답변하세요.'),
               );
             const changes = (await this.store.prepareChanges(reply.files, () => this.cancelled)).filter(
               (change) =>
@@ -309,7 +342,7 @@ class CodingAgent {
             if (!changes.length) {
               /** @type {Error & { code?: string }} */
               const error = new Error(
-                '수정안이 현재 파일과 동일합니다. 새 변경 없이 완료한 파일을 다시 적용하지 마세요.',
+                t('수정안이 현재 파일과 동일합니다. 새 변경 없이 완료한 파일을 다시 적용하지 마세요.'),
               );
               error.code = 'UNCHANGED_CHANGES';
               throw error;
@@ -317,17 +350,17 @@ class CodingAgent {
             this.emit({
               type: 'message',
               role: 'assistant',
-              text: reply.summary || '파일 수정안을 준비했습니다.',
+              text: reply.summary || t('파일 수정안을 준비했습니다.'),
             });
-            if (!this.approveAndApply) throw new Error('파일 변경 적용기가 연결되지 않았습니다.');
-            const applied = await this.approveAndApply(changes, reply.summary || '파일 수정안');
+            if (!this.approveAndApply) throw new Error(t('파일 변경 적용기가 연결되지 않았습니다.'));
+            const applied = await this.approveAndApply(changes, reply.summary || t('파일 수정안'));
             if (applied) {
               appliedFiles += changes.length;
               fresh = true;
               progress.lastError = undefined;
               progress.recordChanges(changes);
             }
-            if (this.cancelled) throw new Error('작업을 중지했습니다.');
+            if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
             history.push({
               kind: 'change_result',
               applied,
@@ -340,7 +373,7 @@ class CodingAgent {
             if (!applied) return { status: 'rejected' };
           } catch (error) {
             if (this.cancelled || ['PARTIAL_DELETE', 'PARTIAL_CHANGE'].includes(error.code)) throw error;
-            this.emit({ type: 'message', role: 'system', text: `수정안 검증: ${error.message}` });
+            this.emit({ type: 'message', role: 'system', text: t('수정안 검증: {0}', error.message) });
             fresh = progress.failure(error);
             history.push({
               kind: 'change_error',
@@ -361,10 +394,10 @@ class CodingAgent {
               /** @type {import('../types/contracts').ToolObservation[]} */
               const observations = [];
               for (const path of paths) {
-                if (this.cancelled) throw new Error('작업을 중지했습니다.', { cause: error });
+                if (this.cancelled) throw new Error(t('작업을 중지했습니다.'), { cause: error });
                 progress.repaired.add(path);
                 const id = newId();
-                this.emit({ type: 'tool', id, label: '수정 대상 자동 확인 · ' + path, state: 'running' });
+                this.emit({ type: 'tool', id, label: t('수정 대상 자동 확인 · ') + path, state: 'running' });
                 const deleting = reply.files.some((file) => file?.path === path && file.action === 'delete');
                 const call = deleting
                   ? { name: 'file_info', path }
@@ -387,16 +420,19 @@ class CodingAgent {
                   this.emit({
                     type: 'tool',
                     id,
-                    label: '수정 대상 자동 확인 · ' + path,
+                    label: t('수정 대상 자동 확인 · ') + path,
                     state: 'done',
-                    detail: `${deleting ? result.size + ' bytes' : (result.content || '').length + '자'} · 실제 hash 확인. 검증한 새 수정안을 요청합니다.`,
+                    detail: t(
+                      '{0} · 실제 hash 확인. 검증한 새 수정안을 요청합니다.',
+                      deleting ? result.size + ' bytes' : (result.content || '').length + t('자'),
+                    ),
                   });
                 } catch (readError) {
                   observations.push({ call, error: readError.message });
                   this.emit({
                     type: 'tool',
                     id,
-                    label: '수정 대상 자동 확인 · ' + path,
+                    label: t('수정 대상 자동 확인 · ') + path,
                     state: 'error',
                     detail: readError.message,
                   });
@@ -410,7 +446,11 @@ class CodingAgent {
         }
       }
       throw new Error(
-        `안전 한도 ${this.maxRounds}회에 도달해 중지했습니다. 실제 적용한 파일: ${appliedFiles}개. 적용 내역은 유지됩니다. 필요한 작업을 이어서 요청하거나 m365Agent.maxRounds를 조정하세요.`,
+        t(
+          '안전 한도 {0}회에 도달해 중지했습니다. 실제 적용한 파일: {1}개. 적용 내역은 유지됩니다. 필요한 작업을 이어서 요청하거나 m365Agent.maxRounds를 조정하세요.',
+          this.maxRounds,
+          appliedFiles,
+        ),
       );
     } finally {
       this.attachments = [];

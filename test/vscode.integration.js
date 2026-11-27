@@ -8,7 +8,10 @@ const { digest } = require('../src/workspace');
 async function run() {
   const extension = vscode.extensions.getExtension('jhoon-dev.m365-code-agent');
   assert.ok(extension, 'extension is loaded');
+  // Keep the existing Korean assertions deterministic on English CI hosts.
+  const languageConfig = vscode.workspace.getConfiguration('m365Agent');
   const { provider, modelProvider } = await extension.activate();
+  await languageConfig.update('language', 'ko', vscode.ConfigurationTarget.Global);
   assert.equal(provider.newWebChat, !provider.webUrl, 'an unlinked initial VS Code chat must start its own web conversation');
   assert.ok(extension.packageJSON.contributes.viewsContainers.activitybar.some(container => container.id === 'm365AgentLauncher'));
   assert.ok(extension.packageJSON.contributes.viewsContainers.secondarySidebar.some(container => container.id === 'm365Agent'));
@@ -26,6 +29,39 @@ async function run() {
   await Promise.race([vscode.commands.executeCommand('m365Agent.open'), new Promise((_resolve, reject) => setTimeout(() => reject(new Error('agent open timed out')), 20000))]);
   assert.equal(provider.view.visible, true, 'chat reopens after restoring its secondary-sidebar location');
   assert.match(provider.view.webview.html, /Content-Security-Policy/);
+  const languageAttachments = provider.attachments;
+  const languageSessions = provider.sessions;
+  const languagePending = { viewData: { type: 'commandApproval', command: 'npm test', token: 'locale-pending' }, resolve() {} };
+  provider.pending = languagePending;
+  provider.starting = true;
+  try {
+    await languageConfig.update('language', 'en', vscode.ConfigurationTarget.Global);
+    for (let tries = 0; !provider.view.webview.html.includes('<html lang="en">') && tries < 50; tries++) await new Promise(resolve => setTimeout(resolve, 50));
+    assert.match(provider.view.webview.html, /<html lang="en">/);
+    assert.match(provider.view.webview.html, />Connect<\/button>/);
+    assert.equal(provider.pending, languagePending, 'language switching preserves active approval');
+    assert.equal(provider.starting, true, 'language switching does not stop the task');
+    assert.equal(provider.attachments, languageAttachments, 'language switching preserves attachments');
+    assert.equal(provider.sessions, languageSessions, 'language switching preserves conversations');
+    provider.responsePanel.show({ text: '사용자가 요청한 한국어 답변' });
+    const reader = provider.responsePanel.panel;
+    assert.equal(reader.title, 'M365 Copilot · Response');
+    provider.browserPanel.show();
+    assert.equal(provider.browserPanel.panel.title, 'M365 Copilot browser');
+    await languageConfig.update('language', 'ko', vscode.ConfigurationTarget.Global);
+    for (let tries = 0; !provider.view.webview.html.includes('<html lang="ko">') && tries < 50; tries++) await new Promise(resolve => setTimeout(resolve, 50));
+    assert.match(provider.view.webview.html, /<html lang="ko">/);
+    assert.equal(reader.title, 'M365 Copilot · 답변');
+    assert.equal(provider.responsePanel.text, '사용자가 요청한 한국어 답변');
+    assert.equal(provider.browserPanel.panel.title, 'M365 Copilot 브라우저');
+    assert.match(provider.browserPanel.panel.webview.html, /<html lang="ko">/);
+  } finally {
+    provider.starting = false;
+    provider.pending = null;
+    provider.responsePanel.dispose();
+    provider.browserPanel.dispose();
+    await languageConfig.update('language', 'ko', vscode.ConfigurationTarget.Global);
+  }
   await provider.handle({ type: 'openResponse', text: '## Readable response\n\n```js\nconst value = 1;\n```', readingSize: 16, wrapCode: true });
   assert.equal(provider.responsePanel.panel.viewType, 'm365Agent.response');
   assert.match(provider.responsePanel.panel.webview.html, /language-js/);

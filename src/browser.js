@@ -1,4 +1,5 @@
 'use strict';
+const { t } = require('./localization');
 const { parseReply, replyIdentity, mergeReplies } = require('./protocol');
 const { createHash } = require('node:crypto');
 const {
@@ -45,7 +46,7 @@ function validateCopilotUrl(value) {
     url.password ||
     (url.port && url.port !== '443')
   )
-    throw new Error('회사 M365 Copilot의 HTTPS 주소만 연결할 수 있습니다.');
+    throw new Error(t('회사 M365 Copilot의 HTTPS 주소만 연결할 수 있습니다.'));
   return url.href;
 }
 
@@ -169,7 +170,9 @@ class CopilotBrowser {
       }
     }
     throw new Error(
-      'Copilot 입력창을 찾지 못했습니다. 전용 Edge 창에서 로그인하고 대화 화면을 연 뒤 다시 연결하세요. 화면 구조가 달라졌다면 입력창 CSS 선택자를 설정하세요.',
+      t(
+        'Copilot 입력창을 찾지 못했습니다. 전용 Edge 창에서 로그인하고 대화 화면을 연 뒤 다시 연결하세요. 화면 구조가 달라졌다면 입력창 CSS 선택자를 설정하세요.',
+      ),
     );
   }
   async waitForComposer(onStatus = () => {}) {
@@ -186,12 +189,14 @@ class CopilotBrowser {
     };
     try {
       while (true) {
-        if (this.cancelled) throw new Error('작업을 중지했습니다.');
+        if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
         if (!this.context || !this.context.pages().some((page) => !page.isClosed()))
-          throw new Error('Copilot 브라우저가 닫혔습니다. 요청은 전송하지 않았습니다.');
+          throw new Error(t('Copilot 브라우저가 닫혔습니다. 요청은 전송하지 않았습니다.'));
         if (Date.now() >= deadline)
           throw new Error(
-            '로그인·입력창 준비 대기 시간이 끝났습니다. 요청은 전송하지 않았으며 입력창에서 다시 시도할 수 있습니다.',
+            t(
+              '로그인·입력창 준비 대기 시간이 끝났습니다. 요청은 전송하지 않았으며 입력창에서 다시 시도할 수 있습니다.',
+            ),
           );
         let candidate;
         for (const page of [this.page, ...[...this.context.pages()].reverse()].filter(
@@ -225,16 +230,16 @@ class CopilotBrowser {
             this.readyPage = this.page;
             this.readyFrame = candidate.frame;
           }
-          report('Copilot 입력창 준비 중 · 첫 요청을 보관하고 있습니다…');
+          report(t('Copilot 입력창 준비 중 · 첫 요청을 보관하고 있습니다…'));
         } else {
           await handle?.dispose();
           handle = null;
           readySince = 0;
           const pages = this.context.pages().filter((page) => !page.isClosed());
           if (pages.some((page) => isLoginUrl(page.url())))
-            report('회사 계정 로그인·MFA 대기 중 · 완료되면 첫 요청을 자동으로 보냅니다.');
+            report(t('회사 계정 로그인·MFA 대기 중 · 완료되면 첫 요청을 자동으로 보냅니다.'));
           else {
-            report('Copilot 대화 화면 대기 중 · 로그인과 화면 로딩이 끝나면 자동으로 계속합니다…');
+            report(t('Copilot 대화 화면 대기 중 · 로그인과 화면 로딩이 끝나면 자동으로 계속합니다…'));
           }
         }
         await new Promise((resolve) => setTimeout(resolve, this.options.readinessPollMs ?? 250));
@@ -284,7 +289,7 @@ class CopilotBrowser {
     try {
       const readyDeadline = Date.now() + (this.options.sendReadyTimeoutMs || 8000);
       while (Date.now() < readyDeadline) {
-        if (this.cancelled) throw new Error('작업을 중지했습니다.');
+        if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
         button = await this.findSendButton(frame, locator);
         if (button) {
           let actionable = false;
@@ -311,11 +316,13 @@ class CopilotBrowser {
         await this.verifyInput(locator, prompt);
         this.lastSend.stage = 'button-not-ready';
         throw new Error(
-          '전송 버튼을 찾지 못했거나 활성화되지 않았습니다. Copilot 로그인·입력 길이 제한을 확인하세요. 요청은 전송하지 않았습니다.',
+          t(
+            '전송 버튼을 찾지 못했거나 활성화되지 않았습니다. Copilot 로그인·입력 길이 제한을 확인하세요. 요청은 전송하지 않았습니다.',
+          ),
         );
       }
       await this.verifyInput(locator, prompt);
-      if (this.cancelled) throw new Error('작업을 중지했습니다.');
+      if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
       await verifyAttachments(this, locator, id);
       this.lastSend.stage = 'clicked';
       // Pin one DOM element and attempt a real click only once. Even if the page
@@ -329,7 +336,7 @@ class CopilotBrowser {
       }
       const deadline = Date.now() + (this.options.sendAckTimeoutMs || 12000);
       while (Date.now() < deadline) {
-        if (this.cancelled) throw new Error('작업을 중지했습니다.');
+        if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
         const cleared = await readComposer(locator)
           .then((snapshot) => !snapshot.text.trim())
           .catch(() => false);
@@ -354,9 +361,9 @@ class CopilotBrowser {
       this.lastSend.stage = 'unconfirmed';
       throw new Error(
         (clickError
-          ? '전송 중 버튼 화면이 변경되어 제출을 확인하지 못했습니다.'
-          : '전송 버튼을 눌렀지만 제출을 확인하지 못했습니다.') +
-          ' Edge 창의 제한·오류 메시지를 확인하세요. 중복 전송을 피하려고 자동 재전송하지 않았습니다.',
+          ? t('전송 중 버튼 화면이 변경되어 제출을 확인하지 못했습니다.')
+          : t('전송 버튼을 눌렀지만 제출을 확인하지 못했습니다.')) +
+          t(' Edge 창의 제한·오류 메시지를 확인하세요. 중복 전송을 피하려고 자동 재전송하지 않았습니다.'),
       );
     } finally {
       await button?.dispose().catch(() => {});
@@ -378,7 +385,7 @@ class CopilotBrowser {
         this.ownedDraft = snapshot;
         return;
       }
-      if (this.cancelled) throw new Error('작업을 중지했습니다.');
+      if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
       await this.page.waitForTimeout(100);
     } while (Date.now() < deadline);
     const actual = normalizeDraft(snapshot.text),
@@ -391,7 +398,11 @@ class CopilotBrowser {
     }
     this.lastSend.stage = 'input-mismatch';
     const error = new Error(
-      `Copilot 편집기가 입력 내용을 변경했습니다 (요청 ${prompt.length.toLocaleString()}자 / 확인 ${snapshot.text.length.toLocaleString()}자). 길이 제한으로 단정하지 않았으며 전송하지 않았습니다. ⋯ 연결 진단에서 입력 상태를 확인하세요.`,
+      t(
+        'Copilot 편집기가 입력 내용을 변경했습니다 (요청 {0}자 / 확인 {1}자). 길이 제한으로 단정하지 않았으며 전송하지 않았습니다. ⋯ 연결 진단에서 입력 상태를 확인하세요.',
+        prompt.length.toLocaleString(),
+        snapshot.text.length.toLocaleString(),
+      ),
     );
     if (!actual) {
       error.code = 'COMPOSER_REINITIALIZED';
@@ -458,12 +469,12 @@ class CopilotBrowser {
       }
     }
     throw new Error(
-      '새 대화 버튼을 찾지 못해 요청을 보내지 않았습니다. 전용 브라우저의 새 채팅 버튼을 확인하세요.',
+      t('새 대화 버튼을 찾지 못해 요청을 보내지 않았습니다. 전용 브라우저의 새 채팅 버튼을 확인하세요.'),
     );
   }
   async protectConversationDraft() {
     if (await this.generationActive())
-      throw new Error('웹에서 응답을 생성 중입니다. 완료 후 대화를 전환하세요.');
+      throw new Error(t('웹에서 응답을 생성 중입니다. 완료 후 대화를 전환하세요.'));
     let composer;
     try {
       composer = await this.getComposer();
@@ -472,21 +483,21 @@ class CopilotBrowser {
     }
     if ((await readComposer(composer.locator)).text.trim())
       throw new Error(
-        '웹 입력창에 작성 중인 내용이 있어 대화를 전환하지 않았습니다. 초안을 먼저 정리하세요.',
+        t('웹 입력창에 작성 중인 내용이 있어 대화를 전환하지 않았습니다. 초안을 먼저 정리하세요.'),
       );
     await prepareAttachments(this, composer.locator, composer.frame, '', []);
   }
   async resumeConversation(value) {
     const target = conversationUrl(validateCopilotUrl(value));
     if (!target.restorable)
-      throw new Error('복원할 수 있는 웹 대화 주소가 아닙니다. 새 웹 대화를 만들지 않았습니다.');
+      throw new Error(t('복원할 수 있는 웹 대화 주소가 아닙니다. 새 웹 대화를 만들지 않았습니다.'));
     await this.connect();
     if (this.conversationInfo().url === target.url) return;
     await this.protectConversationDraft();
     await this.page.goto(target.url, { waitUntil: 'domcontentloaded' });
     await this.waitForComposer();
     if (this.conversationInfo().url !== target.url)
-      throw new Error('원래 웹 대화로 복원되지 않아 요청을 중단했습니다. 새 웹 대화를 만들지 않았습니다.');
+      throw new Error(t('원래 웹 대화로 복원되지 않아 요청을 중단했습니다. 새 웹 대화를 만들지 않았습니다.'));
   }
   async request(
     prompt,
@@ -496,7 +507,7 @@ class CopilotBrowser {
     requestOptions = {},
   ) {
     const { parseReply, mergeReplies, replyIdentity } = protocol;
-    if (this.busy) throw new Error('이미 Copilot 응답을 기다리는 중입니다.');
+    if (this.busy) throw new Error(t('이미 Copilot 응답을 기다리는 중입니다.'));
     this.busy = true;
     this.cancelled = false;
     this.lastSend = null;
@@ -513,22 +524,24 @@ class CopilotBrowser {
         validateCopilotUrl(this.page.url());
         const draft = (await readComposer(locator)).text;
         if (await this.generationActive())
-          throw new Error('Copilot이 다른 응답을 생성 중입니다. 완료 후 다시 실행하세요.');
+          throw new Error(t('Copilot이 다른 응답을 생성 중입니다. 완료 후 다시 실행하세요.'));
         if (draft.trim()) {
           if (!isAgentProtocolDraft(draft) || (await readComposer(locator)).text !== draft)
             throw new Error(
-              'Copilot 입력창에 작성 중인 내용이 있습니다. 덮어쓰지 않았습니다. 전용 창에서 내용을 정리한 뒤 다시 실행하세요.',
+              t(
+                'Copilot 입력창에 작성 중인 내용이 있습니다. 덮어쓰지 않았습니다. 전용 창에서 내용을 정리한 뒤 다시 실행하세요.',
+              ),
             );
           await locator.fill('');
-          onStatus('이전 버전이 남긴 자동화 요청 초안을 정리했습니다. 새 요청을 준비합니다.');
+          onStatus(t('이전 버전이 남긴 자동화 요청 초안을 정리했습니다. 새 요청을 준비합니다.'));
         }
-        if (this.cancelled) throw new Error('작업을 중지했습니다.');
+        if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
         baseline = new Set(await this.responseCandidates(id, prompt));
-        onStatus('Copilot에 요청을 보내고 있습니다…');
+        onStatus(t('Copilot에 요청을 보내고 있습니다…'));
         try {
           await this.writePrompt(locator, prompt);
           await prepareAttachments(this, locator, frame, id, requestOptions.attachments, onStatus);
-          if (this.cancelled) throw new Error('작업을 중지했습니다.');
+          if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
           await this.submitPrompt(locator, frame, prompt, baseline, id);
           submitted = true;
           this.pendingAttachments = null;
@@ -541,11 +554,11 @@ class CopilotBrowser {
             ['clicked', 'unconfirmed'].includes(this.lastSend?.stage)
           )
             throw error;
-          onStatus('로그인 후 입력창이 다시 준비되는 중입니다. 보관한 요청을 자동으로 이어 보냅니다…');
+          onStatus(t('로그인 후 입력창이 다시 준비되는 중입니다. 보관한 요청을 자동으로 이어 보냅니다…'));
         }
       }
       this.lastResponse = { stage: 'waiting' };
-      onStatus('전송 확인됨 · Copilot 응답을 기다리고 있습니다…');
+      onStatus(t('전송 확인됨 · Copilot 응답을 기다리고 있습니다…'));
       const deadline = Date.now() + (this.options.timeoutSeconds || 240) * 1000;
       let candidateText = '',
         stableSince = 0,
@@ -553,8 +566,8 @@ class CopilotBrowser {
         conflictSignature = '',
         conflictSince = 0;
       while (Date.now() < deadline) {
-        if (this.cancelled) throw new Error('작업을 중지했습니다.');
-        if (this.page.isClosed()) throw new Error('Copilot 브라우저 창이 닫혔습니다.');
+        if (this.cancelled) throw new Error(t('작업을 중지했습니다.'));
+        if (this.page.isClosed()) throw new Error(t('Copilot 브라우저 창이 닫혔습니다.'));
         validateCopilotUrl(this.page.url());
         const blocks = await this.responseCandidates(id, prompt);
         let found,
@@ -610,7 +623,7 @@ class CopilotBrowser {
           if (!generating && Date.now() - conflictSince >= (this.options.responseStableMs ?? 2500))
             throw conflicts[0];
           if (lastStage !== 'json-conflict')
-            onStatus('여러 JSON 수정안 확인 중 · 응답 완료 후 충돌을 검증합니다…');
+            onStatus(t('여러 JSON 수정안 확인 중 · 응답 완료 후 충돌을 검증합니다…'));
           lastStage = 'json-conflict';
           await this.page.waitForTimeout(500);
           continue;
@@ -644,10 +657,10 @@ class CopilotBrowser {
         if (stage !== lastStage) {
           onStatus(
             found
-              ? '현재 요청의 JSON 확인됨 · 응답 완료 확인 중…'
+              ? t('현재 요청의 JSON 확인됨 · 응답 완료 확인 중…')
               : matching
-                ? '현재 요청 ID가 있는 답변 발견 · JSON 수집 중…'
-                : 'Copilot 답변 영역을 찾고 있습니다…',
+                ? t('현재 요청 ID가 있는 답변 발견 · JSON 수집 중…')
+                : t('Copilot 답변 영역을 찾고 있습니다…'),
           );
           lastStage = stage;
         }
@@ -655,7 +668,13 @@ class CopilotBrowser {
       }
       const result = this.lastResponse;
       throw new Error(
-        `Copilot 응답 수집 시간이 초과됐습니다. 후보 ${result.candidates || 0}개 / 현재 요청 ID ${result.matchingRequestId || 0}개 / JSON ${result.parsed ? '확인됨' : '미확인'} / 생성 ${result.generating ? '진행 중으로 감지' : '종료로 감지'}. ⋯ 연결 진단에서 수집 단계를 확인하세요. 요청은 재전송하지 않았습니다.`,
+        t(
+          'Copilot 응답 수집 시간이 초과됐습니다. 후보 {0}개 / 현재 요청 ID {1}개 / JSON {2} / 생성 {3}. ⋯ 연결 진단에서 수집 단계를 확인하세요. 요청은 재전송하지 않았습니다.',
+          result.candidates || 0,
+          result.matchingRequestId || 0,
+          result.parsed ? t('확인됨') : t('미확인'),
+          result.generating ? t('진행 중으로 감지') : t('종료로 감지'),
+        ),
       );
     } finally {
       if (

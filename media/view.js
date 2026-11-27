@@ -2,6 +2,7 @@
 const api = acquireVsCodeApi();
 const el = (id) => document.getElementById(id);
 const send = (type) => api.postMessage({ type });
+el('languageSettings').addEventListener('click', () => send('languageSettings'));
 const saved = api.getState() || {};
 let running = false;
 let activePolicy = null;
@@ -53,11 +54,11 @@ function syncPreferences() {
   el('roundMode').hidden = !(activePolicy?.unlimitedRounds ?? el('unlimitedRounds').checked);
   el('approvalMode').textContent = automatic
     ? activePolicy?.mcpRequiresApproval
-      ? '로컬 자동 승인 · MCP 매번 승인'
-      : '승인 없이 진행'
+      ? window.M365Localize('로컬 자동 승인 · MCP 매번 승인')
+      : window.M365Localize('승인 없이 진행')
     : review
-      ? '승인 켜짐'
-      : '일반 파일 자동 적용';
+      ? window.M365Localize('승인 켜짐')
+      : window.M365Localize('일반 파일 자동 적용');
   el('approvalMode').classList.toggle('auto-apply', automatic || !review);
   el('review').disabled = running || automatic;
   el('form').classList.toggle('auto-approval', automatic);
@@ -145,9 +146,15 @@ function activity() {
 function updateActivity(group) {
   const running = group.querySelectorAll('.tool[data-state="running"]').length;
   const failed = group.querySelectorAll('.tool[data-state="error"]').length;
-  group.querySelector('.activity-title').textContent =
-    `작업 기록 · ${group.querySelector('.activity-items').children.length}개`;
-  group.querySelector('.activity-status').textContent = failed ? '확인 필요' : running ? '진행 중' : '';
+  group.querySelector('.activity-title').textContent = window.M365Localize(
+    '작업 기록 · {0}개',
+    group.querySelector('.activity-items').children.length,
+  );
+  group.querySelector('.activity-status').textContent = failed
+    ? window.M365Localize('확인 필요')
+    : running
+      ? window.M365Localize('진행 중')
+      : '';
   group.classList.toggle('has-error', Boolean(failed));
 }
 function message(event) {
@@ -165,7 +172,9 @@ function message(event) {
     summary.textContent = `${{ running: '◌', done: '✓', error: '!' }[event.state]} ${event.label}`;
     card.dataset.state = event.state;
     const detail = document.createElement('pre');
-    detail.textContent = event.detail || (event.state === 'running' ? '작업 중…' : '완료');
+    detail.textContent =
+      event.detail ||
+      (event.state === 'running' ? window.M365Localize('작업 중…') : window.M365Localize('완료'));
     card.replaceChildren(summary, detail);
     const group = card.closest('.activity');
     updateActivity(group);
@@ -181,7 +190,9 @@ function message(event) {
   const label = document.createElement('strong');
   label.className = 'message-role';
   label.textContent =
-    { user: '나', assistant: 'M365 Copilot', system: '작업 기록' }[event.role] || event.role;
+    { user: window.M365Localize('나'), assistant: 'M365 Copilot', system: window.M365Localize('작업 기록') }[
+      event.role
+    ] || event.role;
   card.append(label);
   const body = document.createElement('div');
   if (event.role === 'assistant' && typeof event.html === 'string') {
@@ -198,11 +209,11 @@ function message(event) {
     const actions = document.createElement('div');
     actions.className = 'message-actions';
     const copy = document.createElement('button');
-    copy.textContent = '답변 복사';
+    copy.textContent = window.M365Localize('답변 복사');
     copy.addEventListener('click', () => reading.copy(event.text, copy));
     const expand = document.createElement('button');
-    expand.textContent = '크게 보기';
-    expand.title = '편집기 탭에서 답변 읽기';
+    expand.textContent = window.M365Localize('크게 보기');
+    expand.title = window.M365Localize('편집기 탭에서 답변 읽기');
     expand.addEventListener('click', () =>
       api.postMessage({
         type: 'openResponse',
@@ -231,7 +242,7 @@ function attachments(files) {
     chip.type = 'button';
     chip.className = 'chip';
     chip.textContent = `${path.split(/[\\/]/).at(-1)} ×`;
-    chip.title = `${path} · 클릭하여 첨부 해제`;
+    chip.title = window.M365Localize('{0} · 클릭하여 첨부 해제', path);
     chip.addEventListener('click', () => api.postMessage({ type: 'removeAttachment', path }));
     el('attachments').append(chip);
   }
@@ -246,7 +257,7 @@ el('form').addEventListener('submit', (event) => {
   if (!task || running || composing) return;
   followEnd(true);
   busy(true);
-  el('status').textContent = '작업 준비 중…';
+  el('status').textContent = window.M365Localize('작업 준비 중…');
   el('status').classList.remove('error');
   el('changes').hidden = true;
   pendingTask = { id: crypto.randomUUID(), task };
@@ -338,7 +349,9 @@ function renderSessions() {
   if (!filtered.length) {
     const empty = document.createElement('p');
     empty.className = 'history-empty';
-    empty.textContent = sessions.length ? '일치하는 대화가 없습니다.' : '저장된 대화가 없습니다.';
+    empty.textContent = sessions.length
+      ? window.M365Localize('일치하는 대화가 없습니다.')
+      : window.M365Localize('저장된 대화가 없습니다.');
     el('sessionList').append(empty);
   }
   for (const item of filtered) {
@@ -358,12 +371,23 @@ function renderSessions() {
     });
     const meta = document.createElement('p');
     meta.className = 'session-meta';
-    meta.textContent = `${item.active ? '현재 대화 · ' : ''}${new Date(item.updated).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · 메시지 ${item.count}개${item.linked ? ' · 웹 연결' : ''}`;
+    meta.textContent = window.M365Localize(
+      '{0}{1} · 메시지 {2}개{3}',
+      item.active ? window.M365Localize('현재 대화 · ') : '',
+      new Date(item.updated).toLocaleString(document.documentElement.lang, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      item.count,
+      item.linked ? window.M365Localize(' · 웹 연결') : '',
+    );
     const actions = document.createElement('div');
     actions.className = 'session-actions';
     for (const [type, label] of [
-      ['renameSession', '이름 변경'],
-      ['deleteSession', '삭제'],
+      ['renameSession', window.M365Localize('이름 변경')],
+      ['deleteSession', window.M365Localize('삭제')],
     ]) {
       const button = document.createElement('button');
       button.textContent = label;
@@ -414,14 +438,20 @@ for (const button of document.querySelectorAll('.suggestion'))
   });
 el('model').addEventListener('change', () => api.postMessage({ type: 'selectModel', id: el('model').value }));
 function models(choices, selected) {
-  el('model').replaceChildren(new Option('M365 웹의 현재 모델', ''));
+  el('model').replaceChildren(new Option(window.M365Localize('M365 웹의 현재 모델'), ''));
   for (const choice of choices || []) el('model').append(new Option(choice.label, choice.id));
   el('model').value = selected || '';
 }
 function progress(value) {
   el('roundProgress').hidden = !value;
   el('roundProgress').textContent = value
-    ? `Copilot 요청 ${value.round}회 · ${value.unlimited === true ? '무제한' : '안전 한도 ' + value.total + '회'}`
+    ? window.M365Localize(
+        'Copilot 요청 {0}회 · {1}',
+        value.round,
+        value.unlimited === true
+          ? window.M365Localize('무제한')
+          : window.M365Localize('안전 한도 ') + value.total + window.M365Localize('회'),
+      )
     : '';
 }
 window.addEventListener('message', ({ data }) => {
@@ -449,10 +479,10 @@ window.addEventListener('message', ({ data }) => {
     renderSessions();
   }
   if (data.type === 'webConversation') {
-    el('webSync').textContent = data.url ? '웹 기록 연결됨' : 'M365 Copilot';
+    el('webSync').textContent = data.url ? window.M365Localize('웹 기록 연결됨') : 'M365 Copilot';
     el('webSync').title = data.url
-      ? '5초마다 현재 웹 대화 동기화 · ' + data.url
-      : '연결된 웹 대화를 5초마다 확인합니다.';
+      ? window.M365Localize('5초마다 현재 웹 대화 동기화 · ') + data.url
+      : window.M365Localize('연결된 웹 대화를 5초마다 확인합니다.');
   }
   if (data.type === 'history') {
     const same = hasHistory && activeSessionId === data.sessionId;
@@ -522,9 +552,9 @@ window.addEventListener('message', ({ data }) => {
   if (data.type === 'changes') {
     reviewToken = data.token;
     el('reviewReason').textContent = data.autoApproved
-      ? '승인 없이 진행 · 검증 후 자동 적용합니다.'
+      ? window.M365Localize('승인 없이 진행 · 검증 후 자동 적용합니다.')
       : data.forcedReview?.length
-        ? '파일 삭제·실행 설정 변경은 자동 적용 설정과 관계없이 검토가 필요합니다.'
+        ? window.M365Localize('파일 삭제·실행 설정 변경은 자동 적용 설정과 관계없이 검토가 필요합니다.')
         : '';
     el('changes').hidden = false;
     el('changeTitle').textContent = data.summary;
@@ -532,8 +562,22 @@ window.addEventListener('message', ({ data }) => {
     for (const file of data.files) {
       const button = document.createElement('button');
       button.className = 'file' + (file.action === 'delete' ? ' deleted-file' : '');
-      button.textContent = `${file.action === 'delete' ? (file.directory ? 'D · 폴더 삭제' : 'D · 삭제') : file.action === 'create' ? '+' : 'M'}  ${file.path}${file.binary ? ' (바이너리)' : ''}`;
-      button.title = file.action === 'delete' ? '삭제할 파일 미리보기' : 'VS Code에서 diff 열기';
+      button.textContent = window.M365Localize(
+        '{0}  {1}{2}',
+        file.action === 'delete'
+          ? file.directory
+            ? window.M365Localize('D · 폴더 삭제')
+            : window.M365Localize('D · 삭제')
+          : file.action === 'create'
+            ? '+'
+            : 'M',
+        file.path,
+        file.binary ? window.M365Localize(' (바이너리)') : '',
+      );
+      button.title =
+        file.action === 'delete'
+          ? window.M365Localize('삭제할 파일 미리보기')
+          : window.M365Localize('VS Code에서 diff 열기');
       button.addEventListener('click', () => api.postMessage({ type: 'preview', id: file.id }));
       el('changeFiles').append(button);
     }
@@ -543,19 +587,27 @@ window.addEventListener('message', ({ data }) => {
   if (data.type === 'reviewClosed') closeReview();
   if (data.type === 'commandApproval') {
     const mcp = data.approvalKind === 'mcp';
-    el('approvalTitle').textContent = mcp ? 'MCP 도구 실행 승인' : '명령 실행 승인';
-    el('approveCommand').textContent = mcp ? '이번 도구 실행' : '이번 명령 실행';
+    el('approvalTitle').textContent = mcp
+      ? window.M365Localize('MCP 도구 실행 승인')
+      : window.M365Localize('명령 실행 승인');
+    el('approveCommand').textContent = mcp
+      ? window.M365Localize('이번 도구 실행')
+      : window.M365Localize('이번 명령 실행');
     el('approvalNote').hidden = !mcp;
     el('approvalNote').textContent = mcp
-      ? '선택한 도구의 인자를 MCP 서버에 전송합니다. 서버가 직접 만든 변경은 이 확장의 diff·되돌리기 대상이 아니므로 조회 전용 서버만 사용하세요.'
+      ? window.M365Localize(
+          '선택한 도구의 인자를 MCP 서버에 전송합니다. 서버가 직접 만든 변경은 이 확장의 diff·되돌리기 대상이 아니므로 조회 전용 서버만 사용하세요.',
+        )
       : '';
     commandToken = data.token;
     el('approval').hidden = false;
     el('commandText').textContent = data.command;
     el('commandRoot').textContent = mcp
-      ? `도구: ${data.tool} · 프로젝트: ${data.root}`
-      : `작업 폴더: ${data.root}`;
-    el('status').textContent = mcp ? 'MCP 도구 실행 승인 대기 중' : '명령 실행 승인 대기 중';
+      ? window.M365Localize('도구: {0} · 프로젝트: {1}', data.tool, data.root)
+      : window.M365Localize('작업 폴더: {0}', data.root);
+    el('status').textContent = mcp
+      ? window.M365Localize('MCP 도구 실행 승인 대기 중')
+      : window.M365Localize('명령 실행 승인 대기 중');
     el('commandChanges').replaceChildren();
     if (data.changedFiles?.length) {
       for (const currentTask of [true, false]) {
@@ -563,13 +615,20 @@ window.addEventListener('message', ({ data }) => {
         if (!files.length) continue;
         const title = document.createElement('p');
         title.textContent =
-          (currentTask ? '이번 요청에서 변경한 파일' : '이전 요청에서 변경한 파일') +
-          ' · 파일명을 눌러 diff 검토';
+          (currentTask
+            ? window.M365Localize('이번 요청에서 변경한 파일')
+            : window.M365Localize('이전 요청에서 변경한 파일')) +
+          window.M365Localize(' · 파일명을 눌러 diff 검토');
         el('commandChanges').append(title);
         for (const file of files) {
           const button = document.createElement('button');
           button.className = 'file';
-          button.textContent = `${file.action === 'delete' ? '삭제 · ' : ''}${file.sensitive ? '실행 설정 · ' : ''}${file.path}`;
+          button.textContent = window.M365Localize(
+            '{0}{1}{2}',
+            file.action === 'delete' ? window.M365Localize('삭제 · ') : '',
+            file.sensitive ? window.M365Localize('실행 설정 · ') : '',
+            file.path,
+          );
           button.disabled = !file.id;
           button.addEventListener('click', () => api.postMessage({ type: 'preview', id: file.id }));
           el('commandChanges').append(button);

@@ -1,4 +1,5 @@
 'use strict';
+const { t } = require('./localization');
 const { parseJsonReplies } = require('./protocol');
 
 function failure(message, code = 'INVALID_REPLY_SCHEMA') {
@@ -16,7 +17,7 @@ function validateReply(value, id) {
     value.toolCalls.length > 8 ||
     (!value.text && !value.toolCalls.length)
   )
-    throw failure('실험용 모델 응답의 text/toolCalls 형식이 올바르지 않습니다.');
+    throw failure(t('실험용 모델 응답의 text/toolCalls 형식이 올바르지 않습니다.'));
   const ids = new Set();
   for (const call of value.toolCalls) {
     if (
@@ -30,7 +31,7 @@ function validateReply(value, id) {
       typeof call.input !== 'object' ||
       Array.isArray(call.input)
     )
-      throw failure('실험용 모델 도구 호출의 ID·이름·인자가 올바르지 않습니다.');
+      throw failure(t('실험용 모델 도구 호출의 ID·이름·인자가 올바르지 않습니다.'));
     ids.add(call.id);
   }
   return { requestId: id, kind: 'model', text: value.text, toolCalls: value.toolCalls };
@@ -53,13 +54,13 @@ function stable(value) {
 function mergeReplies(values, id) {
   const unique = [...new Map(values.map((value) => [stable(value), value])).values()];
   if (unique.length > 1)
-    throw failure('서로 다른 모델 응답이 있어 도구 호출을 전달하지 않았습니다.', 'AMBIGUOUS_REPLY');
+    throw failure(t('서로 다른 모델 응답이 있어 도구 호출을 전달하지 않았습니다.'), 'AMBIGUOUS_REPLY');
   return unique.length ? validateReply(unique[0], id) : null;
 }
 
 function parseReply(text, id) {
   const values = parseJsonReplies(text, id);
-  if (!values.length) throw failure('현재 요청의 모델 JSON 응답을 찾지 못했습니다.', 'REPLY_NOT_FOUND');
+  if (!values.length) throw failure(t('현재 요청의 모델 JSON 응답을 찾지 못했습니다.'), 'REPLY_NOT_FOUND');
   return mergeReplies(
     values.map((value) => validateReply(value, id)),
     id,
@@ -71,13 +72,13 @@ function promptTsxText(value) {
   let nodes = 0;
   const visit = (node, depth = 0) => {
     if (!node || ++nodes > 10000 || depth > 64)
-      throw new Error('PromptTsx 구조가 올바르지 않거나 너무 큽니다.');
+      throw new Error(t('PromptTsx 구조가 올바르지 않거나 너무 큽니다.'));
     if (node.type === 2 && typeof node.text === 'string')
       return (node.lineBreakBefore ? '\n' : '') + node.text;
     if (node.type === 1 && [1, 2].includes(node.ctor) && Array.isArray(node.children))
       return node.children.map((child) => visit(child, depth + 1)).join('');
     throw new Error(
-      'PromptTsx의 이미지·문서·opaque 노드는 지원하지 않습니다. 텍스트로 가장해 보내지 않았습니다.',
+      t('PromptTsx의 이미지·문서·opaque 노드는 지원하지 않습니다. 텍스트로 가장해 보내지 않았습니다.'),
     );
   };
   return visit(value?.node);
@@ -94,13 +95,13 @@ function convertMessages(messages, vscode) {
     if (instance(part, 'LanguageModelDataPart')) {
       const mime = part.mimeType.split(';')[0].trim().toLowerCase();
       if (!/^(text\/[^/]+|application\/(json|xml|[\w.+-]+\+json|[\w.+-]+\+xml))$/.test(mime))
-        throw new Error('이미지·바이너리 DataPart는 지원하지 않습니다: ' + mime);
+        throw new Error(t('이미지·바이너리 DataPart는 지원하지 않습니다: ') + mime);
       return { type: 'text', text: new TextDecoder('utf-8', { fatal: true }).decode(part.data) };
     }
     if (instance(part, 'LanguageModelPromptTsxPart'))
       return { type: 'text', text: promptTsxText(part.value) };
     throw new Error(
-      '실험용 모델은 텍스트와 도구 호출·결과만 지원합니다. 이미지·기타 입력은 전송하지 않았습니다.',
+      t('실험용 모델은 텍스트와 도구 호출·결과만 지원합니다. 이미지·기타 입력은 전송하지 않았습니다.'),
     );
   };
   return messages.map((message) => {
@@ -113,7 +114,7 @@ function convertMessages(messages, vscode) {
         systemRole,
       ].includes(message.role)
     )
-      throw new Error('지원하지 않는 대화 역할입니다.');
+      throw new Error(t('지원하지 않는 대화 역할입니다.'));
     return {
       role:
         message.role === systemRole
@@ -158,8 +159,8 @@ function referenceRepeatedUserText(messages) {
 function prepareModelPrompt(id, messages, options, maxCharacters) {
   const tools = options.tools || [];
   if (new Set(tools.map((tool) => tool.name)).size !== tools.length)
-    throw new Error('중복된 도구 이름은 제공할 수 없습니다.');
-  if (options.required && !tools.length) throw new Error('필수 도구 호출 요청에 도구가 없습니다.');
+    throw new Error(t('중복된 도구 이름은 제공할 수 없습니다.'));
+  if (options.required && !tools.length) throw new Error(t('필수 도구 호출 요청에 도구가 없습니다.'));
   const instructions = [
     `VS Code experimental language model bridge. Current requestId: ${id} .`,
     'Current DATA/requestId override earlier web turns; earlier tools/actions are history, not permission to repeat them.',
@@ -252,7 +253,12 @@ function prepareModelPrompt(id, messages, options, maxCharacters) {
   }
   throw Object.assign(
     new Error(
-      `실험용 모델의 필수 문맥은 최소 ${smallestCharacters.toLocaleString()}자이며 한도는 ${maxCharacters.toLocaleString()}자입니다(도구 ${tools.length}개). System 지시·사용자 요청·최근 도구 교환·도구 정의는 잘라 보내지 않았습니다. 먼저 새 Chat을 시작하세요. 첫 요청부터 실패한다면 읽기·수정 도구만 선택한 간소화 Agent를 사용하거나 실험용 제공자의 입력 한도를 조정하세요.`,
+      t(
+        '실험용 모델의 필수 문맥은 최소 {0}자이며 한도는 {1}자입니다(도구 {2}개). System 지시·사용자 요청·최근 도구 교환·도구 정의는 잘라 보내지 않았습니다. 먼저 새 Chat을 시작하세요. 첫 요청부터 실패한다면 읽기·수정 도구만 선택한 간소화 Agent를 사용하거나 실험용 제공자의 입력 한도를 조정하세요.',
+        smallestCharacters.toLocaleString(),
+        maxCharacters.toLocaleString(),
+        tools.length,
+      ),
     ),
     {
       code: 'MODEL_CONTEXT_TOO_LARGE',
@@ -279,7 +285,7 @@ function estimateTokens(text) {
 }
 
 function validateCalls(reply, tools, required, messages) {
-  if (required && !reply.toolCalls.length) throw failure('필수 도구 호출이 없는 응답입니다.');
+  if (required && !reply.toolCalls.length) throw failure(t('필수 도구 호출이 없는 응답입니다.'));
   const names = new Set(tools.map((tool) => tool.name));
   const previousIds = new Set(
     messages.flatMap((message) =>
@@ -287,8 +293,9 @@ function validateCalls(reply, tools, required, messages) {
     ),
   );
   for (const call of reply.toolCalls) {
-    if (!names.has(call.name)) throw failure('요청에 제공되지 않은 도구 호출을 거절했습니다: ' + call.name);
-    if (previousIds.has(call.id)) throw failure('이전 도구 호출 ID를 재사용한 응답입니다.');
+    if (!names.has(call.name))
+      throw failure(t('요청에 제공되지 않은 도구 호출을 거절했습니다: ') + call.name);
+    if (previousIds.has(call.id)) throw failure(t('이전 도구 호출 ID를 재사용한 응답입니다.'));
   }
 }
 

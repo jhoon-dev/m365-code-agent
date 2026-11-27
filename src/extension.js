@@ -1,4 +1,5 @@
 'use strict';
+const { t, setLanguage, resolveLanguage } = require('./localization');
 const vscode = require('vscode');
 const path = require('node:path');
 const fs = require('node:fs/promises');
@@ -118,10 +119,27 @@ class AgentView {
       this.context.subscriptions,
     );
   }
+  refreshLanguage() {
+    setLanguage(
+      resolveLanguage(
+        this.config().get('language', 'auto'),
+        process.env.VSCODE_NLS_CONFIG,
+        Intl.DateTimeFormat().resolvedOptions().locale,
+      ),
+    );
+    if (this.view) {
+      const nonce = crypto.randomBytes(18).toString('base64');
+      const resource = (name) =>
+        this.view.webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', name));
+      this.view.webview.html = renderWebview({ nonce, cspSource: this.view.webview.cspSource, resource });
+    }
+    this.browserPanel.refreshLanguage();
+    this.responsePanel.refreshLanguage();
+  }
   async rootFolder() {
-    if (!vscode.workspace.isTrusted) throw new Error('신뢰할 수 있는 프로젝트에서만 실행할 수 있습니다.');
+    if (!vscode.workspace.isTrusted) throw new Error(t('신뢰할 수 있는 프로젝트에서만 실행할 수 있습니다.'));
     const folders = vscode.workspace.workspaceFolders || [];
-    if (!folders.length) throw new Error('먼저 VS Code에서 작업할 폴더를 여세요.');
+    if (!folders.length) throw new Error(t('먼저 VS Code에서 작업할 폴더를 여세요.'));
     if (this.folder && !folders.some((folder) => folder.uri.toString() === this.folder.uri.toString()))
       this.folder = null;
     const folder =
@@ -131,12 +149,12 @@ class AgentView {
         : await vscode.window
             .showQuickPick(
               folders.map((value) => ({ label: value.name, value })),
-              { placeHolder: '이번 작업의 프로젝트 폴더를 선택하세요.' },
+              { placeHolder: t('이번 작업의 프로젝트 폴더를 선택하세요.') },
             )
             .then((pick) => pick?.value));
-    if (!folder) throw new Error('프로젝트 선택을 취소했습니다.');
+    if (!folder) throw new Error(t('프로젝트 선택을 취소했습니다.'));
     if (folder.uri.scheme !== 'file')
-      throw new Error('이 버전은 같은 Windows PC의 로컬 프로젝트만 지원합니다.');
+      throw new Error(t('이 버전은 같은 Windows PC의 로컬 프로젝트만 지원합니다.'));
     this.folder = folder;
     return folder;
   }
@@ -151,7 +169,7 @@ class AgentView {
     ).initialize();
   }
   async checkWorkspace() {
-    if (this.starting || this.agent?.running) throw new Error('작업을 마친 뒤 프로젝트를 점검하세요.');
+    if (this.starting || this.agent?.running) throw new Error(t('작업을 마친 뒤 프로젝트를 점검하세요.'));
     this.starting = true;
     this.stopRequested = false;
     this.post({ type: 'busy' });
@@ -161,12 +179,12 @@ class AgentView {
       const store = await this.workspaceStore(folder);
       const project = await inspectProject(
         store,
-        '프로젝트 소스 분석',
+        t('프로젝트 소스 분석'),
         this.config().get('maxPromptCharacters'),
         (event) => this.post(event),
         () => this.stopRequested,
       );
-      if (this.stopRequested) throw new Error('점검을 중지했습니다.');
+      if (this.stopRequested) throw new Error(t('점검을 중지했습니다.'));
       const target = (await store.resolve('.m365-agent-check-' + crypto.randomUUID() + '.tmp', true)).target;
       handle = await fs.open(target, 'wx');
       probe = target;
@@ -174,13 +192,18 @@ class AgentView {
       await handle.close();
       handle = null;
       if ((await fs.readFile(target, 'utf8')) !== 'M365 Code Agent workspace access check')
-        throw new Error('임시 파일 쓰기 검증에 실패했습니다.');
+        throw new Error(t('임시 파일 쓰기 검증에 실패했습니다.'));
       this.workspaceInfo = { name: folder.name, path: store.root, read: project.read, writable: true };
       this.post({ type: 'workspace', ...this.workspaceInfo });
       this.post({
         type: 'message',
         role: 'system',
-        text: `로컬 프로젝트 점검\n${store.root}\n파일 ${project.discovered}개 발견 · 본문 ${project.read}개 읽음\n임시 파일 쓰기·읽기 검증 성공. 임시 파일을 삭제합니다. M365 연결은 사용하지 않았습니다.`,
+        text: t(
+          '로컬 프로젝트 점검\n{0}\n파일 {1}개 발견 · 본문 {2}개 읽음\n임시 파일 쓰기·읽기 검증 성공. 임시 파일을 삭제합니다. M365 연결은 사용하지 않았습니다.',
+          store.root,
+          project.discovered,
+          project.read,
+        ),
       });
     } finally {
       try {
@@ -248,13 +271,17 @@ class AgentView {
     return this.browser;
   }
   async connect() {
-    if (this.switchingBrowser) throw new Error('브라우저 전환이 끝난 뒤 다시 연결하세요.');
+    if (this.switchingBrowser) throw new Error(t('브라우저 전환이 끝난 뒤 다시 연결하세요.'));
     await this.ensureBrowser();
     const result = await this.browser.diagnostics();
     this.post({
       type: 'message',
       role: 'system',
-      text: `Copilot 브라우저 연결: ${result.title}\n${result.url}\n브라우저 화면에서 회사 계정 로그인 후 작업을 시작하세요.`,
+      text: t(
+        'Copilot 브라우저 연결: {0}\n{1}\n브라우저 화면에서 회사 계정 로그인 후 작업을 시작하세요.',
+        result.title,
+        result.url,
+      ),
     });
   }
   async showBrowser() {
@@ -280,8 +307,8 @@ class AgentView {
         type: 'status',
         text:
           mode === 'editor'
-            ? 'VS Code 브라우저에 연결했습니다.'
-            : '외부 브라우저로 전환했습니다. 중지된 요청은 입력창에서 다시 보낼 수 있습니다.',
+            ? t('VS Code 브라우저에 연결했습니다.')
+            : t('외부 브라우저로 전환했습니다. 중지된 요청은 입력창에서 다시 보낼 수 있습니다.'),
       });
     } finally {
       this.switchingBrowser = false;
@@ -311,7 +338,7 @@ class AgentView {
     const listing = await store.listFiles(1000);
     const picks = await vscode.window.showQuickPick(
       listing.files.map((label) => ({ label, picked: this.attachments.includes(label) })),
-      { canPickMany: true, placeHolder: '첨부할 파일 선택 (최대 5개)' },
+      { canPickMany: true, placeHolder: t('첨부할 파일 선택 (최대 5개)') },
     );
     if (
       !picks ||
@@ -321,7 +348,7 @@ class AgentView {
       this.sessionSwitching
     )
       return;
-    if (picks.length > 5) throw new Error('파일은 최대 5개까지 첨부할 수 있습니다.');
+    if (picks.length > 5) throw new Error(t('파일은 최대 5개까지 첨부할 수 있습니다.'));
     const external = this.attachments.filter((file) => path.isAbsolute(file));
     const selected = new Map();
     for (const file of [...external, ...picks.map((pick) => pick.label)]) {
@@ -330,7 +357,7 @@ class AgentView {
       if (!selected.has(key)) selected.set(key, file);
     }
     if (selected.size > 5)
-      throw new Error('이미지·문서·동영상을 포함해 파일은 최대 5개까지 첨부할 수 있습니다.');
+      throw new Error(t('이미지·문서·동영상을 포함해 파일은 최대 5개까지 첨부할 수 있습니다.'));
     this.attachments = [...selected.values()];
     this.view?.webview.postMessage({ type: 'attachments', files: this.attachments });
   }
@@ -342,9 +369,9 @@ class AgentView {
       canSelectFiles: true,
       canSelectFolders: false,
       canSelectMany: true,
-      openLabel: '분석할 파일 첨부',
-      title: '이미지·문서·동영상 첨부 (전송 시 M365에 업로드)',
-      filters: { '이미지·문서·동영상': Object.values(attachmentExtensions).flat() },
+      openLabel: t('분석할 파일 첨부'),
+      title: t('이미지·문서·동영상 첨부 (전송 시 M365에 업로드)'),
+      filters: { [t('이미지·문서·동영상')]: Object.values(attachmentExtensions).flat() },
     });
     if (
       !files ||
@@ -354,7 +381,7 @@ class AgentView {
       this.sessionSwitching
     )
       return;
-    if (files.some((file) => file.scheme !== 'file')) throw new Error('이 PC의 로컬 파일을 선택하세요.');
+    if (files.some((file) => file.scheme !== 'file')) throw new Error(t('이 PC의 로컬 파일을 선택하세요.'));
     const selectedByPath = new Map();
     for (const file of [...this.attachments, ...files.map((file) => file.fsPath)]) {
       const target = path.resolve(folder.uri.fsPath, file);
@@ -362,7 +389,7 @@ class AgentView {
       if (!selectedByPath.has(key)) selectedByPath.set(key, file);
     }
     const selected = [...selectedByPath.values()];
-    if (selected.length > 5) throw new Error('파일은 최대 5개까지 첨부할 수 있습니다.');
+    if (selected.length > 5) throw new Error(t('파일은 최대 5개까지 첨부할 수 있습니다.'));
     this.attachments = selected;
     this.view?.webview.postMessage({ type: 'attachments', files: this.attachments });
   }
@@ -390,7 +417,24 @@ class AgentView {
     this.post({
       type: 'message',
       role: 'system',
-      text: `실행 환경 진단 · ${environment.version}\nOS: ${environment.platform}/${environment.architecture} · 브라우저: ${environment.channel} · 표시: ${environment.display}\n기본 설치 위치: ${environment.defaultExecutableFound === null ? '검사 대상 아님' : environment.defaultExecutableFound ? '확인됨' : '미확인'} · 전용 프로필 쓰기: ${environment.profileWritable ? '가능' : '실패'}${this.lastConnectionFailure ? '\n최근 실패: ' + this.lastConnectionFailure.code + ' · ' + this.lastConnectionFailure.stage : ''}${environment.profileError ? '\n' + environment.profileError : ''}`,
+      text: t(
+        '실행 환경 진단 · {0}\nOS: {1}/{2} · 브라우저: {3} · 표시: {4}\n기본 설치 위치: {5} · 전용 프로필 쓰기: {6}{7}{8}',
+        environment.version,
+        environment.platform,
+        environment.architecture,
+        environment.channel,
+        environment.display,
+        environment.defaultExecutableFound === null
+          ? t('검사 대상 아님')
+          : environment.defaultExecutableFound
+            ? t('확인됨')
+            : t('미확인'),
+        environment.profileWritable ? t('가능') : t('실패'),
+        this.lastConnectionFailure
+          ? t('\n최근 실패: ') + this.lastConnectionFailure.code + ' · ' + this.lastConnectionFailure.stage
+          : '',
+        environment.profileError ? '\n' + environment.profileError : '',
+      ),
     });
     // Diagnostics must remain usable when launch/profile/panel creation failed.
     if (!this.browser?.page || this.browser.page.isClosed()) return;
@@ -406,23 +450,46 @@ class AgentView {
     this.post({
       type: 'message',
       role: 'system',
-      text: `연결 진단\n주소: ${data.url}\n입력창: ${data.composer}\n페이지 프레임: ${data.frames}\n최근 전송: ${data.lastSend?.stage || '없음'}${data.lastSend ? `\n입력: 요청 ${data.lastSend.characters}자 / 확인 ${data.lastSend.observedCharacters ?? '?'}자 / 한도 ${data.lastSend.maxLength ?? '미표시'}` : ''}`,
+      text: t(
+        '연결 진단\n주소: {0}\n입력창: {1}\n페이지 프레임: {2}\n최근 전송: {3}{4}',
+        data.url,
+        data.composer,
+        data.frames,
+        data.lastSend?.stage || t('없음'),
+        data.lastSend
+          ? t(
+              '\n입력: 요청 {0}자 / 확인 {1}자 / 한도 {2}',
+              data.lastSend.characters,
+              data.lastSend.observedCharacters ?? '?',
+              data.lastSend.maxLength ?? t('미표시'),
+            )
+          : '',
+      ),
     });
     if (data.lastResponse) {
       const response = data.lastResponse;
       const stage =
         {
-          'not-submitted': '전송 전',
-          waiting: '응답 영역 대기',
-          'json-incomplete': '요청 ID 발견·JSON 수집 중',
-          'json-conflict': '여러 JSON 충돌 확인 중',
-          'json-confirmed': 'JSON 확인·생성 종료 대기',
-          complete: '수집 완료',
+          'not-submitted': t('전송 전'),
+          waiting: t('응답 영역 대기'),
+          'json-incomplete': t('요청 ID 발견·JSON 수집 중'),
+          'json-conflict': t('여러 JSON 충돌 확인 중'),
+          'json-confirmed': t('JSON 확인·생성 종료 대기'),
+          complete: t('수집 완료'),
         }[response.stage] || response.stage;
       this.post({
         type: 'message',
         role: 'system',
-        text: `응답 수집 진단\n단계: ${stage}\n응답 후보: ${response.candidates || 0}개 / 현재 요청 ID: ${response.matchingRequestId || 0}개\nJSON: ${response.parsed ? '확인됨' : '미확인'} / 생성 상태: ${response.generating ? '진행 중' : '종료 또는 미감지'}\n수집 경로: ${response.sources?.join(', ') || '없음'}${response.parseError ? '\n해석 상태: ' + response.parseError : ''}`,
+        text: t(
+          '응답 수집 진단\n단계: {0}\n응답 후보: {1}개 / 현재 요청 ID: {2}개\nJSON: {3} / 생성 상태: {4}\n수집 경로: {5}{6}',
+          stage,
+          response.candidates || 0,
+          response.matchingRequestId || 0,
+          response.parsed ? t('확인됨') : t('미확인'),
+          response.generating ? t('진행 중') : t('종료 또는 미감지'),
+          response.sources?.join(', ') || t('없음'),
+          response.parseError ? t('\n해석 상태: ') + response.parseError : '',
+        ),
       });
     }
   }
@@ -438,10 +505,11 @@ class AgentView {
     }
     if (this.agent) await this.agent.stop();
     if (this.browser && !this.agent?.running) await this.browser.stop();
-    this.post({ type: 'status', text: '중지 요청됨. 이후 응답은 파일에 적용하지 않습니다.' });
+    this.post({ type: 'status', text: t('중지 요청됨. 이후 응답은 파일에 적용하지 않습니다.') });
   }
   async start(message) {
-    if (this.currentRun || this.switchingBrowser) throw new Error('이미 작업 또는 브라우저 전환 중입니다.');
+    if (this.currentRun || this.switchingBrowser)
+      throw new Error(t('이미 작업 또는 브라우저 전환 중입니다.'));
     const job = this.runTask(message);
     this.currentRun = job;
     try {
@@ -452,7 +520,7 @@ class AgentView {
   }
   async runTask(message) {
     if (this.starting || this.sessionSwitching || this.agent?.running)
-      throw new Error('이미 작업 또는 대화 전환 중입니다.');
+      throw new Error(t('이미 작업 또는 대화 전환 중입니다.'));
     this.starting = true;
     this.taskId = crypto.randomUUID();
     this.conversations.invalidate();
@@ -471,7 +539,7 @@ class AgentView {
       const targetStore = message.editorTarget ? await this.workspaceStore(folder) : null;
       if (message.editorTarget) await this.editorActions.context(message.editorTarget, targetStore);
       const browser = await this.ensureBrowser();
-      if (this.stopRequested) throw new Error('작업을 중지했습니다.');
+      if (this.stopRequested) throw new Error(t('작업을 중지했습니다.'));
       const store = targetStore || (await this.workspaceStore(folder));
       this.workspaceInfo = { name: folder.name, path: store.root };
       this.post({ type: 'workspace', ...this.workspaceInfo });
@@ -502,7 +570,7 @@ class AgentView {
             this.post({
               type: 'message',
               role: 'system',
-              text: '열린 파일이 커서 자동 첨부를 생략했습니다. 에이전트가 필요한 파일을 요청합니다.',
+              text: t('열린 파일이 커서 자동 첨부를 생략했습니다. 에이전트가 필요한 파일을 요청합니다.'),
             });
         } catch {
           /* Outside-root or ignored files are not attached. */
@@ -519,11 +587,11 @@ class AgentView {
         if (file.content.length > 10000) {
           store.ledger.delete(file.path);
           store.editReads.delete(file.path);
-          contextFiles.push({ path: relative, omitted: '큰 파일입니다. read_file의 줄 범위로 읽으세요.' });
+          contextFiles.push({ path: relative, omitted: t('큰 파일입니다. read_file의 줄 범위로 읽으세요.') });
         } else contextFiles.push(file);
       }
       if (JSON.stringify(contextFiles).length > 24000)
-        throw new Error('첨부 문맥이 큽니다. 첨부 파일 수를 줄이세요.');
+        throw new Error(t('첨부 문맥이 큽니다. 첨부 파일 수를 줄이세요.'));
       const prepared = await prepareAttachments(uploadPaths, {
         maxFileBytes: this.config().get('attachmentMaxFileSizeMB', 64) * 1024 * 1024,
         maxTotalBytes: this.config().get('attachmentMaxTotalSizeMB', 100) * 1024 * 1024,
@@ -533,12 +601,12 @@ class AgentView {
       const { task, mode, intent } = resolveTask(message.task);
       const autoApprove = message.autoApprove === true;
       const unlimitedRounds = message.unlimitedRounds === true;
-      if (this.stopRequested) throw new Error('작업을 중지했습니다.');
+      if (this.stopRequested) throw new Error(t('작업을 중지했습니다.'));
       this.saveSession();
       if (browser.waitForComposer && browser.context) {
         browser.cancelled = false;
         await browser.waitForComposer((text) => this.post({ type: 'status', text }));
-        if (this.stopRequested) throw new Error('작업을 중지했습니다.');
+        if (this.stopRequested) throw new Error(t('작업을 중지했습니다.'));
         await this.conversations.prepareWeb();
         const snapshot = await browser.readConversation();
         if (!this.webUrl || snapshot.url === this.webUrl) {
@@ -548,7 +616,7 @@ class AgentView {
           this.view?.webview.postMessage(this.state());
         }
       }
-      if (this.stopRequested) throw new Error('작업을 중지했습니다.');
+      if (this.stopRequested) throw new Error(t('작업을 중지했습니다.'));
       if (message.editorTarget) {
         contextFiles[0] = await this.editorActions.context(message.editorTarget, store);
       }
@@ -593,7 +661,7 @@ class AgentView {
       });
       this.post({
         type: 'status',
-        text: errorMessage || '완료 · 다음 요청을 이어서 입력하세요.',
+        text: errorMessage || t('완료 · 다음 요청을 이어서 입력하세요.'),
         error: Boolean(errorMessage),
       });
     }
@@ -609,6 +677,8 @@ class AgentView {
   }
   async handle(message) {
     if (!message || typeof message.type !== 'string') return;
+    if (message.type === 'languageSettings')
+      return vscode.commands.executeCommand('workbench.action.openSettings', 'm365Agent.language');
     if (message.type === 'ready') {
       this.view.webview.postMessage(this.state());
       return;
@@ -667,7 +737,7 @@ class AgentView {
         'vscode.diff',
         makeUri('-old'),
         makeUri('-new'),
-        'M365 Agent · 변경 미리보기',
+        t('M365 Agent · 변경 미리보기'),
       );
     }
   }
@@ -694,7 +764,22 @@ class AgentView {
 }
 
 function activate(context) {
+  if (vscode.workspace.getConfiguration) {
+    setLanguage(
+      resolveLanguage(
+        vscode.workspace.getConfiguration('m365Agent').get('language', 'auto'),
+        process.env.VSCODE_NLS_CONFIG,
+        Intl.DateTimeFormat().resolvedOptions().locale,
+      ),
+    );
+  }
   const provider = new AgentView(context);
+  if (vscode.workspace.onDidChangeConfiguration)
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration('m365Agent.language')) provider.refreshLanguage();
+      }),
+    );
   const modelProvider = registerModelProvider(context, vscode);
   context.subscriptions.push(...provider.editorActions.register());
   context.subscriptions.push(

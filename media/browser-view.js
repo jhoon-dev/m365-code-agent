@@ -133,7 +133,7 @@ window.addEventListener('message', async ({ data }) => {
       token = data.token;
       el('empty').hidden = true;
     } catch {
-      el('notice').textContent = '화면을 다시 불러오고 있습니다…';
+      el('notice').textContent = window.M365Localize('화면을 다시 불러오고 있습니다…');
     } finally {
       img.src = '';
       send({ type: 'frameAck', id: data.id, token: data.token });
@@ -141,17 +141,19 @@ window.addEventListener('message', async ({ data }) => {
   }
   if (data.type === 'browserState') {
     locked = data.locked;
-    el('address').textContent = data.url || '브라우저 연결 대기';
+    el('address').textContent = data.url || window.M365Localize('브라우저 연결 대기');
     el('notice').textContent = locked
-      ? '에이전트가 작업 중입니다. 직접 조작하려면 M365 Agent에서 중지하세요.'
-      : '화면을 클릭해 로그인하거나 브라우저를 직접 조작하세요.';
+      ? window.M365Localize('에이전트가 작업 중입니다. 직접 조작하려면 M365 Agent에서 중지하세요.')
+      : window.M365Localize('화면을 클릭해 로그인하거나 브라우저를 직접 조작하세요.');
     for (const id of ['back', 'forward', 'reload', 'pages']) el(id).disabled = locked || !data.connected;
     el('pages').replaceChildren(...(data.tabs || []).map((tab) => new Option(tab.title, tab.id)));
     el('pages').value = data.selected || '';
     if (!data.connected) {
       token = '';
       el('empty').hidden = false;
-      el('empty').textContent = '브라우저 연결을 기다리고 있습니다. 다시 연결을 누르세요.';
+      el('empty').textContent = window.M365Localize(
+        '브라우저 연결을 기다리고 있습니다. 다시 연결을 누르세요.',
+      );
     }
   }
   if (data.type === 'browserNotice') el('notice').textContent = data.text;

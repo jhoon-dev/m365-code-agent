@@ -1,5 +1,6 @@
 // @ts-check
 'use strict';
+const { t } = require('./localization');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -22,7 +23,7 @@ function decodeText(buffer) {
         ? 'utf-16be'
         : 'utf-8';
   const content = new TextDecoder(encoding, { fatal: true }).decode(buffer ?? undefined);
-  if (content.includes('\0')) throw new Error('바이너리 파일입니다.');
+  if (content.includes('\0')) throw new Error(t('바이너리 파일입니다.'));
   return content;
 }
 const blocked =
@@ -36,7 +37,7 @@ async function readIgnores(directory, names) {
       const target = path.join(directory, name);
       const stat = await fs.lstat(target);
       if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 1024 * 1024)
-        throw new Error('제외 규칙 파일을 안전하게 읽을 수 없습니다.');
+        throw new Error(t('제외 규칙 파일을 안전하게 읽을 수 없습니다.'));
       rules.add(await fs.readFile(target, 'utf8'));
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
@@ -81,12 +82,12 @@ class WorkspaceStore {
       maxDirectories < 1 ||
       maxDirectories > 10000
     )
-      throw new Error('검색 탐색 한도가 올바르지 않습니다.');
-    if (cancelled()) throw new Error('작업을 중지했습니다.');
+      throw new Error(t('검색 탐색 한도가 올바르지 않습니다.'));
+    if (cancelled()) throw new Error(t('작업을 중지했습니다.'));
     this.ignores = await readIgnores(this.root, ['.gitignore', '.m365agentignore']);
     const scopes = paths === undefined ? ['.'] : typeof paths === 'string' ? [paths] : paths;
     if (!Array.isArray(scopes) || scopes.length > 500 || scopes.some((scope) => typeof scope !== 'string'))
-      throw new Error('검색 범위는 최대 500개의 상대 경로여야 합니다.');
+      throw new Error(t('검색 범위는 최대 500개의 상대 경로여야 합니다.'));
     const files = new Set(),
       directories = new Set(),
       visited = new Set(),
@@ -94,7 +95,7 @@ class WorkspaceStore {
     /** @type {{path: string, rules: {prefix: string, rules: ReturnType<typeof ignore>}[]}[]} */
     const queue = [];
     const check = () => {
-      if (cancelled()) throw new Error('작업을 중지했습니다.');
+      if (cancelled()) throw new Error(t('작업을 중지했습니다.'));
     };
     // Include ignore rules from every ancestor even for a directly scoped search.
     /** @param {string} directory */
@@ -187,7 +188,7 @@ class WorkspaceStore {
    * @param {() => boolean} [cancelled] @param {import('../types/contracts').FileDiscovery} [listing] */
   async searchCode(query, paths, cancelled = () => false, listing) {
     if (typeof query !== 'string' || !query.trim() || query.length > 8000)
-      throw new Error('관련 코드 검색어는 1~8,000자여야 합니다.');
+      throw new Error(t('관련 코드 검색어는 1~8,000자여야 합니다.'));
     this.codeIndex ||= new ProjectIndex(this);
     return this.codeIndex.search(
       query,
@@ -204,7 +205,7 @@ class WorkspaceStore {
       path.win32.isAbsolute(input) ||
       path.posix.isAbsolute(input)
     )
-      throw new Error('프로젝트 상대 경로만 사용할 수 있습니다.');
+      throw new Error(t('프로젝트 상대 경로만 사용할 수 있습니다.'));
     const normalized = input.replace(/\\/g, '/').replace(/^(?:\.\/)+/, '');
     if (
       normalized
@@ -219,9 +220,9 @@ class WorkspaceStore {
             /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i.test(part),
         )
     )
-      throw new Error('허용되지 않는 파일 경로입니다.');
+      throw new Error(t('허용되지 않는 파일 경로입니다.'));
     if (blocked.test(normalized) || this.ignores.ignores(normalized))
-      throw new Error(`제외된 경로입니다: ${normalized}`);
+      throw new Error(t('제외된 경로입니다: {0}', normalized));
     return normalized;
   }
   /** @param {string} input */
@@ -233,11 +234,11 @@ class WorkspaceStore {
       cursor = path.join(cursor, part);
       try {
         const stat = await fs.lstat(cursor);
-        if (stat.isSymbolicLink()) throw new Error('심볼릭 링크와 정션 경로는 접근하지 않습니다.');
+        if (stat.isSymbolicLink()) throw new Error(t('심볼릭 링크와 정션 경로는 접근하지 않습니다.'));
         const real = await fs.realpath(cursor);
         const relative = path.relative(this.root, real);
         if (relative.startsWith('..' + path.sep) || relative === '..' || path.isAbsolute(relative))
-          throw new Error('프로젝트 밖의 경로입니다.');
+          throw new Error(t('프로젝트 밖의 경로입니다.'));
       } catch (error) {
         if (allowMissing && error.code === 'ENOENT') break;
         throw error;
@@ -274,7 +275,7 @@ class WorkspaceStore {
       topPrefix = '';
     if (directory) {
       const { normalized, target } = await this.resolve(directory);
-      if (!(await fs.stat(target)).isDirectory()) throw new Error('목록 경로는 디렉터리여야 합니다.');
+      if (!(await fs.stat(target)).isDirectory()) throw new Error(t('목록 경로는 디렉터리여야 합니다.'));
       topTarget = target;
       topPrefix = normalized + '/';
       await walk(target, normalized + '/');
@@ -300,7 +301,10 @@ class WorkspaceStore {
     const stat = await fs.stat(target);
     if (!stat.isFile() || stat.size > this.maxFileBytes)
       throw new Error(
-        `${Math.floor(this.maxFileBytes / 1024 / 1024)}MB 이하의 텍스트 파일만 읽을 수 있습니다. 더 큰 파일은 파일 크기 설정을 조정하세요.`,
+        t(
+          '{0}MB 이하의 텍스트 파일만 읽을 수 있습니다. 더 큰 파일은 파일 크기 설정을 조정하세요.',
+          Math.floor(this.maxFileBytes / 1024 / 1024),
+        ),
       );
     const openText = this.readText && !diskOnly ? await this.readText(target) : undefined;
     const buffer = typeof openText === 'string' ? null : await fs.readFile(target);
@@ -315,7 +319,7 @@ class WorkspaceStore {
         ? openText
         : new TextDecoder(encoding, { fatal: true }).decode(buffer ?? undefined);
     if (content.includes('\0') || Buffer.byteLength(content, 'utf8') > this.maxFileBytes)
-      throw new Error('바이너리 또는 너무 큰 파일입니다.');
+      throw new Error(t('바이너리 또는 너무 큰 파일입니다.'));
     const hash = digest(content);
     return { path: normalized, hash, content };
   }
@@ -323,16 +327,16 @@ class WorkspaceStore {
   async loadBytes(input) {
     const { normalized, target } = await this.resolve(input);
     const stat = await fs.stat(target);
-    if (!stat.isFile()) throw new Error('파일 경로가 필요합니다. 폴더는 folder_info로 확인하세요.');
+    if (!stat.isFile()) throw new Error(t('파일 경로가 필요합니다. 폴더는 folder_info로 확인하세요.'));
     if (stat.size > this.maxFileBytes)
-      throw new Error('파일 크기 제한을 초과했습니다. 파일 크기 설정을 확인하세요.');
+      throw new Error(t('파일 크기 제한을 초과했습니다. 파일 크기 설정을 확인하세요.'));
     const buffer = await fs.readFile(target);
-    if (buffer.length > this.maxFileBytes) throw new Error('파일 크기 제한을 초과했습니다.');
+    if (buffer.length > this.maxFileBytes) throw new Error(t('파일 크기 제한을 초과했습니다.'));
     return { path: normalized, target, buffer, hash: digestBytes(buffer) };
   }
   /** @param {string} input @returns {Promise<import('../types/contracts').FileInfo>} */
   async fileInfo(input, cancelled = () => false) {
-    if (cancelled()) throw new Error('작업을 중지했습니다.');
+    if (cancelled()) throw new Error(t('작업을 중지했습니다.'));
     const file = await this.loadBytes(input);
     this.deleteReads.set(file.path, file.hash);
     return {
@@ -355,7 +359,7 @@ class WorkspaceStore {
   async loadDirectory(input, includeBytes = false, cancelled = () => false) {
     const root = await this.resolve(input),
       stat = await fs.stat(root.target);
-    if (!stat.isDirectory()) throw new Error('folder_info에는 프로젝트 안의 폴더 경로가 필요합니다.');
+    if (!stat.isDirectory()) throw new Error(t('folder_info에는 프로젝트 안의 폴더 경로가 필요합니다.'));
     const identity = `${stat.dev}:${stat.ino}:${stat.birthtimeMs}`;
     /** @type {DirectorySnapshot['files']} */
     const files = [];
@@ -365,35 +369,35 @@ class WorkspaceStore {
       count = 0;
     /** @param {string} relative */
     const walk = async (relative) => {
-      if (cancelled()) throw new Error('작업을 중지했습니다.');
+      if (cancelled()) throw new Error(t('작업을 중지했습니다.'));
       const resolved = await this.resolve(relative);
       if (this.ignores.ignores(resolved.normalized + '/'))
-        throw new Error(`제외된 폴더가 포함되어 있습니다: ${resolved.normalized}`);
+        throw new Error(t('제외된 폴더가 포함되어 있습니다: {0}', resolved.normalized));
       directories.push(resolved.normalized);
       if (++count > 1000)
-        throw new Error('폴더 삭제는 하위 파일·폴더 합계 1,000개까지 지원합니다. 범위를 나누세요.');
+        throw new Error(t('폴더 삭제는 하위 파일·폴더 합계 1,000개까지 지원합니다. 범위를 나누세요.'));
       for (const entry of (await fs.readdir(resolved.target, { withFileTypes: true })).sort((a, b) =>
         a.name.localeCompare(b.name),
       )) {
-        if (cancelled()) throw new Error('작업을 중지했습니다.');
+        if (cancelled()) throw new Error(t('작업을 중지했습니다.'));
         const filename = resolved.normalized + '/' + entry.name;
         this.normalize(filename); // An excluded child prevents deleting the whole folder.
-        if (entry.isSymbolicLink()) throw new Error('링크·정션이 포함된 폴더는 삭제하지 않습니다.');
+        if (entry.isSymbolicLink()) throw new Error(t('링크·정션이 포함된 폴더는 삭제하지 않습니다.'));
         if (entry.isDirectory()) await walk(filename);
         else if (entry.isFile()) {
           if (++count > 1000)
-            throw new Error('폴더 삭제는 하위 파일·폴더 합계 1,000개까지 지원합니다. 범위를 나누세요.');
+            throw new Error(t('폴더 삭제는 하위 파일·폴더 합계 1,000개까지 지원합니다. 범위를 나누세요.'));
           const file = await this.loadBytes(filename);
           size += file.buffer.length;
           if (size > 32 * 1024 * 1024)
-            throw new Error('한 번의 폴더 삭제 백업은 총 32MB까지 지원합니다. 범위를 나누세요.');
+            throw new Error(t('한 번의 폴더 삭제 백업은 총 32MB까지 지원합니다. 범위를 나누세요.'));
           files.push({
             path: file.path,
             hash: file.hash,
             size: file.buffer.length,
             ...(includeBytes ? { bytes: file.buffer } : {}),
           });
-        } else throw new Error('일반 파일·폴더만 삭제할 수 있습니다.');
+        } else throw new Error(t('일반 파일·폴더만 삭제할 수 있습니다.'));
       }
     };
     await walk(root.normalized);
@@ -447,7 +451,7 @@ class WorkspaceStore {
         maxCharacters < 128 ||
         maxCharacters > 22000
       )
-        throw new Error('줄 범위가 올바르지 않습니다. startLine/startColumn>=1, lineCount=1~200.');
+        throw new Error(t('줄 범위가 올바르지 않습니다. startLine/startColumn>=1, lineCount=1~200.'));
       let content = '',
         end = start - 1;
       /** @type {number | null} */
@@ -496,7 +500,7 @@ class WorkspaceStore {
   /** @param {string} query @param {string | string[]} [paths] */
   async search(query, paths, cancelled = () => false) {
     if (typeof query !== 'string' || !query || query.length > 200)
-      throw new Error('검색어는 1~200자여야 합니다.');
+      throw new Error(t('검색어는 1~200자여야 합니다.'));
     const listing = await this.discoverFiles({ paths, cancelled });
     const matches = [];
     const reasons = new Set(listing.reasons);
@@ -504,7 +508,7 @@ class WorkspaceStore {
       skippedFiles = 0,
       bytes = 0;
     for (const filename of listing.files) {
-      if (cancelled()) throw new Error('작업을 중지했습니다.');
+      if (cancelled()) throw new Error(t('작업을 중지했습니다.'));
       let file;
       try {
         const { target } = await this.resolve(filename);
@@ -523,7 +527,7 @@ class WorkspaceStore {
       }
       searchedFiles++;
       for (const [index, line] of file.content.split(/\r?\n/).entries()) {
-        if (cancelled()) throw new Error('작업을 중지했습니다.');
+        if (cancelled()) throw new Error(t('작업을 중지했습니다.'));
         const found = line.toLowerCase().indexOf(query.toLowerCase());
         if (found >= 0) {
           const start = Math.max(0, found - 80);
@@ -555,7 +559,7 @@ class WorkspaceStore {
   /** @param {ChangeProposal[]} files @returns {Promise<PreparedChange[]>} */
   async prepareChanges(files, cancelled = () => false) {
     if (!Array.isArray(files) || !files.length || files.length > 30)
-      throw new Error('변경 파일은 1~30개여야 합니다.');
+      throw new Error(t('변경 파일은 1~30개여야 합니다.'));
     const seen = new Set();
     /** @type {PreparedChange[]} */
     const changes = [];
@@ -568,22 +572,23 @@ class WorkspaceStore {
         (['create', 'replace'].includes(file.action) &&
           (!('content' in file) || typeof file.content !== 'string'))
       )
-        throw new Error('지원하지 않는 변경 형식입니다.');
+        throw new Error(t('지원하지 않는 변경 형식입니다.'));
       const { normalized, target } = await this.resolve(file.path, file.action === 'create');
       const key = normalized.toLowerCase();
-      if (seen.has(key)) throw new Error('동일 파일을 중복 변경할 수 없습니다.');
+      if (seen.has(key)) throw new Error(t('동일 파일을 중복 변경할 수 없습니다.'));
       seen.add(key);
       if (file.action === 'delete') {
         if ((await fs.stat(target)).isDirectory()) {
           if (typeof file.baseHash !== 'string' || this.directoryReads.get(normalized) !== file.baseHash)
             throw new Error(
-              `먼저 folder_info로 폴더 전체를 확인하고 정확한 hash를 사용해야 합니다: ${normalized}`,
+              t('먼저 folder_info로 폴더 전체를 확인하고 정확한 hash를 사용해야 합니다: {0}', normalized),
             );
           const snapshot = await this.loadDirectory(normalized, true, cancelled);
           if (snapshot.hash !== file.baseHash)
-            throw new Error(`확인 뒤 폴더 내용이 변경되었습니다. 다시 확인하세요: ${normalized}`);
+            throw new Error(t('확인 뒤 폴더 내용이 변경되었습니다. 다시 확인하세요: {0}', normalized));
           deletedBytes += snapshot.size;
-          if (deletedBytes > 32 * 1024 * 1024) throw new Error('한 번의 삭제 백업은 총 32MB까지 지원합니다.');
+          if (deletedBytes > 32 * 1024 * 1024)
+            throw new Error(t('한 번의 삭제 백업은 총 32MB까지 지원합니다.'));
           changes.push({
             path: normalized,
             target,
@@ -591,7 +596,7 @@ class WorkspaceStore {
             directory: true,
             content: '',
             original:
-              '폴더 삭제 목록\n' +
+              t('폴더 삭제 목록\n') +
               [
                 ...snapshot.directories.map((name) => name + '/'),
                 ...snapshot.files.map((item) => item.path),
@@ -599,7 +604,8 @@ class WorkspaceStore {
             directorySnapshot: {
               ...snapshot,
               files: snapshot.files.map((file) => {
-                if (!Buffer.isBuffer(file.bytes)) throw new Error('폴더 삭제 원본 바이트 백업이 없습니다.');
+                if (!Buffer.isBuffer(file.bytes))
+                  throw new Error(t('폴더 삭제 원본 바이트 백업이 없습니다.'));
                 return { ...file, bytes: file.bytes };
               }),
             },
@@ -615,23 +621,26 @@ class WorkspaceStore {
           (!byteRead && this.editReads.get(normalized)?.hash !== file.baseHash)
         )
           throw new Error(
-            `먼저 read_file 또는 file_info로 파일을 확인하고 정확한 hash를 사용해야 합니다: ${normalized}`,
+            t(
+              '먼저 read_file 또는 file_info로 파일을 확인하고 정확한 hash를 사용해야 합니다: {0}',
+              normalized,
+            ),
           );
         const snapshot = await this.loadBytes(normalized);
         if (
           byteRead ? snapshot.hash !== file.baseHash : digest(decodeText(snapshot.buffer)) !== file.baseHash
         )
-          throw new Error(`확인 뒤 파일이 변경되었습니다. 다시 확인하세요: ${normalized}`);
+          throw new Error(t('확인 뒤 파일이 변경되었습니다. 다시 확인하세요: {0}', normalized));
         deletedBytes += snapshot.buffer.length;
         if (deletedBytes > 32 * 1024 * 1024)
-          throw new Error('한 번의 삭제 백업은 총 32MB까지 지원합니다. 파일 묶음을 줄이세요.');
+          throw new Error(t('한 번의 삭제 백업은 총 32MB까지 지원합니다. 파일 묶음을 줄이세요.'));
         let original,
           binary = false;
         try {
           original = decodeText(snapshot.buffer);
         } catch {
           binary = true;
-          original = `[바이너리 파일 · ${snapshot.buffer.length.toLocaleString()} bytes]\n`;
+          original = t('[바이너리 파일 · {0} bytes]\n', snapshot.buffer.length.toLocaleString());
         }
         changes.push({
           path: normalized,
@@ -653,26 +662,26 @@ class WorkspaceStore {
       if (file.action === 'create') {
         try {
           await fs.lstat(target);
-          throw new Error(`이미 존재하는 파일입니다: ${normalized}`);
+          throw new Error(t('이미 존재하는 파일입니다: {0}', normalized));
         } catch (error) {
           if (error.code !== 'ENOENT') throw error;
         }
-        if (file.baseHash !== null) throw new Error('새 파일의 baseHash는 null이어야 합니다.');
+        if (file.baseHash !== null) throw new Error(t('새 파일의 baseHash는 null이어야 합니다.'));
       } else if (file.action === 'replace') {
         if (this.ledger.get(normalized) !== file.baseHash)
-          throw new Error(`먼저 파일을 읽고 정확한 hash를 사용해야 합니다: ${normalized}`);
+          throw new Error(t('먼저 파일을 읽고 정확한 hash를 사용해야 합니다: {0}', normalized));
         original = await this.loadFile(normalized);
         if (original.hash !== file.baseHash)
-          throw new Error(`읽은 뒤 변경된 파일입니다. 다시 읽어야 합니다: ${normalized}`);
+          throw new Error(t('읽은 뒤 변경된 파일입니다. 다시 읽어야 합니다: {0}', normalized));
       } else {
         const observed = this.editReads.get(normalized);
         if (!observed || observed.hash !== file.baseHash)
-          throw new Error(`먼저 수정할 줄을 읽고 정확한 hash를 사용해야 합니다: ${normalized}`);
+          throw new Error(t('먼저 수정할 줄을 읽고 정확한 hash를 사용해야 합니다: {0}', normalized));
         original = await this.loadFile(normalized);
         if (original.hash !== file.baseHash)
-          throw new Error(`읽은 뒤 변경된 파일입니다. 다시 읽어야 합니다: ${normalized}`);
+          throw new Error(t('읽은 뒤 변경된 파일입니다. 다시 읽어야 합니다: {0}', normalized));
         if (!Array.isArray(file.edits) || file.edits.length < 1 || file.edits.length > 20)
-          throw new Error('부분 수정은 1~20개의 oldText/newText 쌍이어야 합니다.');
+          throw new Error(t('부분 수정은 1~20개의 oldText/newText 쌍이어야 합니다.'));
         const crlf =
           original.content.includes('\r\n') && !original.content.replace(/\r\n/g, '').includes('\n');
         /** @param {string} text */
@@ -688,19 +697,21 @@ class WorkspaceStore {
               edit.oldText.includes('\0') ||
               edit.newText.includes('\0')
             )
-              throw new Error('부분 수정의 텍스트가 올바르지 않습니다.');
+              throw new Error(t('부분 수정의 텍스트가 올바르지 않습니다.'));
             const oldText = eol(edit.oldText),
               newText = eol(edit.newText);
             if (!observed.chunks.some((chunk) => chunk.includes(oldText)))
-              throw new Error('수정할 oldText가 읽은 범위에 없습니다. 해당 줄을 먼저 읽으세요.');
+              throw new Error(t('수정할 oldText가 읽은 범위에 없습니다. 해당 줄을 먼저 읽으세요.'));
             const start = observedContent.indexOf(oldText);
             if (start < 0 || observedContent.indexOf(oldText, start + 1) >= 0)
-              throw new Error('oldText는 파일에서 정확히 한 번 나타나야 합니다. 앞뒤 문맥을 더 포함하세요.');
+              throw new Error(
+                t('oldText는 파일에서 정확히 한 번 나타나야 합니다. 앞뒤 문맥을 더 포함하세요.'),
+              );
             return { start, end: start + oldText.length, text: newText };
           })
           .sort((a, b) => a.start - b.start);
         for (let index = 1; index < spans.length; index++)
-          if (spans[index].start < spans[index - 1].end) throw new Error('부분 수정 범위가 겹칩니다.');
+          if (spans[index].start < spans[index - 1].end) throw new Error(t('부분 수정 범위가 겹칩니다.'));
         content = original.content;
         for (const span of spans.reverse())
           content = content.slice(0, span.start) + span.text + content.slice(span.end);
@@ -711,7 +722,7 @@ class WorkspaceStore {
         Buffer.byteLength(content, 'utf8') > this.maxFileBytes ||
         content.includes('\0')
       )
-        throw new Error('변경 내용이 너무 크거나 텍스트가 아닙니다.');
+        throw new Error(t('변경 내용이 너무 크거나 텍스트가 아닙니다.'));
       changes.push({
         ...file,
         directory: false,
@@ -728,18 +739,18 @@ class WorkspaceStore {
           (other) => other !== change && other.path.toLowerCase().startsWith(change.path.toLowerCase() + '/'),
         )
       )
-        throw new Error('폴더와 그 내부 경로를 같은 묶음에서 중복 변경할 수 없습니다. 폴더만 지정하세요.');
+        throw new Error(t('폴더와 그 내부 경로를 같은 묶음에서 중복 변경할 수 없습니다. 폴더만 지정하세요.'));
     return changes;
   }
   /** @param {PreparedChange[]} changes */
   async verifyChanges(changes, cancelled = () => false) {
     for (const change of changes) {
-      if (cancelled()) throw new Error('작업을 중지했습니다.');
+      if (cancelled()) throw new Error(t('작업을 중지했습니다.'));
       await this.resolve(change.path, change.action === 'create');
       if (change.action === 'create') {
         try {
           await fs.lstat(change.target);
-          throw new Error(`새 파일 경로가 이미 생겼습니다: ${change.path}`);
+          throw new Error(t('새 파일 경로가 이미 생겼습니다: {0}', change.path));
         } catch (error) {
           if (error.code !== 'ENOENT') throw error;
         }
@@ -750,9 +761,9 @@ class WorkspaceStore {
             : await this.loadBytes(change.path)
           ).hash !== change.expectedDiskHash
         )
-          throw new Error(`미리보기 이후 파일·폴더가 변경되었습니다: ${change.path}`);
+          throw new Error(t('미리보기 이후 파일·폴더가 변경되었습니다: {0}', change.path));
       } else if ((await this.loadFile(change.path)).hash !== change.expectedHash)
-        throw new Error(`미리보기 이후 파일이 변경되었습니다: ${change.path}`);
+        throw new Error(t('미리보기 이후 파일이 변경되었습니다: {0}', change.path));
     }
   }
 }

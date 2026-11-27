@@ -1,4 +1,5 @@
 'use strict';
+const { t } = require('./localization');
 const crypto = require('node:crypto');
 const newId = () => crypto.randomUUID();
 const { replyIdentity, mergeReplies } = require('./reply-merge');
@@ -6,7 +7,7 @@ const { normalizeToolCall } = require('./tool-call');
 
 function parseJsonReplies(text, expectedId) {
   if (typeof text !== 'string' || text.length > 1024 * 1024)
-    throw new Error('응답 크기 또는 형식이 올바르지 않습니다.');
+    throw new Error(t('응답 크기 또는 형식이 올바르지 않습니다.'));
   const candidates = [text.trim()];
   const starts = [];
   let quoted = false,
@@ -61,19 +62,20 @@ function parseReply(text, expectedId) {
   for (const value of parseJsonReplies(text, expectedId)) {
     let error;
     if (!['tools', 'changes', 'done'].includes(value.kind))
-      error = '응답의 kind가 tools/changes/done 중 하나가 아닙니다.';
+      error = t('응답의 kind가 tools/changes/done 중 하나가 아닙니다.');
     else if (
       value.kind === 'tools' &&
       (!Array.isArray(value.calls) || !value.calls.length || value.calls.length > 8)
     )
-      error = '도구 요청은 1~8개여야 합니다.';
+      error = t('도구 요청은 1~8개여야 합니다.');
     else if (value.kind === 'tools') {
       try {
         value.calls = value.calls.map(normalizeToolCall);
       } catch {
-        error = '도구 이름 또는 인자 형식이 올바르지 않습니다.';
+        error = t('도구 이름 또는 인자 형식이 올바르지 않습니다.');
       }
-    } else if (value.kind === 'changes' && !Array.isArray(value.files)) error = '변경 파일 목록이 없습니다.';
+    } else if (value.kind === 'changes' && !Array.isArray(value.files))
+      error = t('변경 파일 목록이 없습니다.');
     else if (
       value.kind === 'changes' &&
       value.files.some(
@@ -84,8 +86,8 @@ function parseReply(text, expectedId) {
             (!Array.isArray(file.edits) || file.edits.some((edit) => !edit || typeof edit !== 'object'))),
       )
     )
-      error = '변경 파일 또는 부분 수정 형식이 올바르지 않습니다.';
-    else if (value.kind === 'done' && typeof value.message !== 'string') error = '완료 설명이 없습니다.';
+      error = t('변경 파일 또는 부분 수정 형식이 올바르지 않습니다.');
+    else if (value.kind === 'done' && typeof value.message !== 'string') error = t('완료 설명이 없습니다.');
     if (error) {
       schemaError = error;
       continue;
@@ -93,7 +95,7 @@ function parseReply(text, expectedId) {
     replies.push(value);
   }
   if (replies.length) return mergeReplies(replies, expectedId);
-  const error = new Error(schemaError || '현재 요청 ID와 일치하는 완전한 JSON 응답을 찾지 못했습니다.');
+  const error = new Error(schemaError || t('현재 요청 ID와 일치하는 완전한 JSON 응답을 찾지 못했습니다.'));
   error.code = schemaError ? 'INVALID_REPLY_SCHEMA' : 'REPLY_NOT_FOUND';
   throw error;
 }
@@ -265,9 +267,9 @@ function buildPrompt({
                 })),
               }
             : {}),
-          omitted: '본문은 read_file로 요청하세요.',
+          omitted: t('본문은 read_file로 요청하세요.'),
         }))
-      : '첨부 문맥 생략: 필요한 파일은 read_file로 요청하세요.';
+      : t('첨부 문맥 생략: 필요한 파일은 read_file로 요청하세요.');
   }
   if (render().length > maxCharacters && payload.history.length) {
     // Retain the latest tool outcomes rather than silently dropping them. Large
@@ -310,8 +312,9 @@ function buildPrompt({
           };
         else {
           delete observation.result;
-          observation.error =
-            'Copilot 입력 한도로 결과 본문을 전달하지 못했습니다. 더 좁은 search_text 또는 작은 파일을 요청하세요.';
+          observation.error = t(
+            'Copilot 입력 한도로 결과 본문을 전달하지 못했습니다. 더 좁은 search_text 또는 작은 파일을 요청하세요.',
+          );
         }
       }
     } else if (last.role) payload.history = [];
@@ -319,7 +322,11 @@ function buildPrompt({
   const prompt = render();
   if (prompt.length > maxCharacters)
     throw new Error(
-      `요청이 너무 큽니다. 필수 요청 ${prompt.length.toLocaleString()}자 / 한도 ${maxCharacters.toLocaleString()}자. 요청 내용을 줄여 주세요.`,
+      t(
+        '요청이 너무 큽니다. 필수 요청 {0}자 / 한도 {1}자. 요청 내용을 줄여 주세요.',
+        prompt.length.toLocaleString(),
+        maxCharacters.toLocaleString(),
+      ),
     );
   return prompt;
 }

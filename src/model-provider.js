@@ -1,4 +1,5 @@
 'use strict';
+const { t } = require('./localization');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { randomUUID } = require('node:crypto');
@@ -29,10 +30,10 @@ class ExperimentalModelProvider {
   assertAvailable(token, generation = this.generation) {
     if (this.disposed || token.isCancellationRequested) throw new this.vscode.CancellationError();
     if (!this.config().get('experimental.modelProvider.enabled', false))
-      throw new Error('실험용 모델 제공자가 꺼져 있습니다.');
+      throw new Error(t('실험용 모델 제공자가 꺼져 있습니다.'));
     if (generation !== this.generation) throw new this.vscode.CancellationError();
     if (!this.vscode.workspace.isTrusted)
-      throw new Error('신뢰할 수 있는 작업 영역에서만 모델을 사용할 수 있습니다.');
+      throw new Error(t('신뢰할 수 있는 작업 영역에서만 모델을 사용할 수 있습니다.'));
   }
 
   async provideLanguageModelChatInformation(_options, token) {
@@ -53,8 +54,8 @@ class ExperimentalModelProvider {
         // Match provideTokenCount's byte/3 units, leaving room for the bridge envelope.
         maxInputTokens: Math.max(1, Math.floor((this.promptLimit() - 2000) / 3)),
         maxOutputTokens: 4096,
-        tooltip: '전용 브라우저의 현재 웹 모델 · 응답 완료 후 전달 · 입력 글자 한도 별도 적용',
-        detail: '웹 자동화 · 실험용 · VS Code 도구 정책 적용',
+        tooltip: t('전용 브라우저의 현재 웹 모델 · 응답 완료 후 전달 · 입력 글자 한도 별도 적용'),
+        detail: t('웹 자동화 · 실험용 · VS Code 도구 정책 적용'),
         capabilities: { imageInput: false, toolCalling: true },
       },
     ];
@@ -97,7 +98,7 @@ class ExperimentalModelProvider {
     const generation = this.generation;
     const check = () => this.assertAvailable(token, generation);
     check();
-    if (model.id !== 'web-current-experimental') throw new Error('알 수 없는 실험용 모델입니다.');
+    if (model.id !== 'web-current-experimental') throw new Error(t('알 수 없는 실험용 모델입니다.'));
     const originalMessages = protocol.convertMessages(messages, this.vscode);
     const converted = cleanMessages(originalMessages);
     const tools = (options.tools || []).map((tool) => ({
@@ -155,7 +156,9 @@ class ExperimentalModelProvider {
           } else if (this.activeConversationId !== conversation.id) {
             throw Object.assign(
               new Error(
-                '이 대화의 복원 가능한 웹 주소가 없어 재연결하지 않았습니다. 새 웹 대화를 자동으로 만들지 않았습니다.',
+                t(
+                  '이 대화의 복원 가능한 웹 주소가 없어 재연결하지 않았습니다. 새 웹 대화를 자동으로 만들지 않았습니다.',
+                ),
               ),
               { code: 'MODEL_CONVERSATION_UNAVAILABLE' },
             );
@@ -201,7 +204,11 @@ class ExperimentalModelProvider {
           this.conversations.capture(conversation, browser.conversationInfo());
           const notice =
             prepared.omittedMessages || prepared.referencedTextParts
-              ? `> 문맥 축소: 오래된 메시지 ${prepared.omittedMessages}개 생략, 반복 사용자 텍스트 ${prepared.referencedTextParts || 0}개 참조 처리. System 지시·사용자 요청·최근 도구 교환·도구 정의는 유지했습니다.\n\n`
+              ? t(
+                  '> 문맥 축소: 오래된 메시지 {0}개 생략, 반복 사용자 텍스트 {1}개 참조 처리. System 지시·사용자 요청·최근 도구 교환·도구 정의는 유지했습니다.\n\n',
+                  prepared.omittedMessages,
+                  prepared.referencedTextParts || 0,
+                )
               : '';
           const previousTurns = [...conversation.turns],
             previousCalls = [...conversation.calls];
@@ -256,7 +263,7 @@ class ExperimentalModelProvider {
   enqueue(work, token) {
     if (this.pending >= 8)
       return Promise.reject(
-        new Error('실험용 모델 요청이 8개 대기 중입니다. 진행 중인 요청을 마친 뒤 다시 시도하세요.'),
+        new Error(t('실험용 모델 요청이 8개 대기 중입니다. 진행 중인 요청을 마친 뒤 다시 시도하세요.')),
       );
     this.pending++;
     return new Promise((resolve, reject) => {

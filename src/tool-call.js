@@ -1,5 +1,6 @@
 // @ts-check
 'use strict';
+const { t } = require('./localization');
 const { jsonValue } = require('./mcp');
 /** @typedef {import('../types/contracts').ToolCall} ToolCall */
 
@@ -13,19 +14,19 @@ function isRecord(value) {
  * @returns {ToolCall}
  */
 function normalizeToolCall(value) {
-  if (!isRecord(value)) throw new Error('도구 요청 객체가 없습니다.');
+  if (!isRecord(value)) throw new Error(t('도구 요청 객체가 없습니다.'));
   const nested = isRecord(value.function) ? value.function : {};
   const name = value.name || nested.name;
-  if (typeof name !== 'string' || !name.trim()) throw new Error('도구 이름이 없는 요청입니다.');
+  if (typeof name !== 'string' || !name.trim()) throw new Error(t('도구 이름이 없는 요청입니다.'));
   let args = value.arguments ?? value.parameters ?? value.args ?? nested.arguments ?? {};
   if (typeof args === 'string') {
     try {
       args = JSON.parse(args);
     } catch (cause) {
-      throw new Error('도구 인자의 JSON 형식이 올바르지 않습니다.', { cause });
+      throw new Error(t('도구 인자의 JSON 형식이 올바르지 않습니다.'), { cause });
     }
   }
-  if (!isRecord(args)) throw new Error('도구 인자가 객체가 아닙니다.');
+  if (!isRecord(args)) throw new Error(t('도구 인자가 객체가 아닙니다.'));
   /** @type {ToolCall} */
   const result = { name };
   /** @param {string} key @param {string | undefined} alias */
@@ -33,7 +34,7 @@ function normalizeToolCall(value) {
   for (const key of /** @type {const} */ (['path', 'query', 'command', 'tool'])) {
     const entry = argument(key, key === 'path' ? 'file_path' : undefined);
     if (entry === undefined) continue;
-    if (typeof entry !== 'string') throw new Error(`${key}는 문자열이어야 합니다.`);
+    if (typeof entry !== 'string') throw new Error(t('{0}는 문자열이어야 합니다.', key));
     result[key] = entry;
   }
   const aliases = {
@@ -47,7 +48,7 @@ function normalizeToolCall(value) {
     const entry = argument(key, aliases[key]);
     if (entry === undefined) continue;
     if (typeof entry !== 'number' || !Number.isFinite(entry))
-      throw new Error(`${key}는 유한한 숫자여야 합니다.`);
+      throw new Error(t('{0}는 유한한 숫자여야 합니다.', key));
     result[key] = entry;
   }
   const paths = argument('paths', undefined);
@@ -56,12 +57,12 @@ function normalizeToolCall(value) {
       typeof paths !== 'string' &&
       !(Array.isArray(paths) && paths.every((path) => typeof path === 'string'))
     )
-      throw new Error('paths는 문자열 또는 문자열 배열이어야 합니다.');
+      throw new Error(t('paths는 문자열 또는 문자열 배열이어야 합니다.'));
     result.paths = paths;
   }
   const input = Object.hasOwn(value, 'input') ? value.input : args.input;
   if (input !== undefined) {
-    if (!isRecord(input)) throw new Error('MCP input은 JSON 객체여야 합니다.');
+    if (!isRecord(input)) throw new Error(t('MCP input은 JSON 객체여야 합니다.'));
     result.input = /** @type {Record<string, unknown>} */ (jsonValue(input));
   }
   return result;

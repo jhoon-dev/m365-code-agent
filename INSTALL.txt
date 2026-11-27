@@ -1,9 +1,19 @@
-M365 Code Agent 0.16.4 - Installation and use
+M365 Code Agent 0.17.0 - Installation and use
 ==========================================
 
 English is the default release language. For Korean, see INSTALL.ko.txt and
-README.ko.md. The extension UI remains Korean; model answers follow your request's
-language unless you explicitly choose another response language.
+README.ko.md. The interface supports English and Korean. Model answers follow
+your request's language unless you explicitly choose another response language.
+
+Interface language
+------------------
+The default m365Agent.language=auto follows the OS locale reported by VS Code
+(Korean for ko; English otherwise), falling back to the runtime platform locale.
+Use the sidebar's More (...) > Language settings, or search for m365Agent.language
+in Settings, to choose auto, en or ko. Panels update immediately and preserve your
+draft, conversation, attachments and pending approval. Existing conversation text
+is preserved. Command/menu names and Settings descriptions follow VS Code's own
+display language. This preference does not change model answer language.
 
 This is an unofficial experimental extension, not a Microsoft product.
 Use requires an eligible M365 Copilot account and organizational permission for
@@ -20,7 +30,7 @@ outside this release's scope.
 Install and use the existing M365 Agent chat
 ------------------------------------------
 1. Open VS Code Extensions, choose ... > Install from VSIX..., and select
-   m365-code-agent-0.16.4.vsix. Reload VS Code if prompted.
+   m365-code-agent-0.17.0.vsix. Reload VS Code if prompted.
    Marketplace: https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent
 2. Open the local project you want to work on.
 3. Click M365 Agent in the left Activity Bar or editor title toolbar. If an older layout remains, run

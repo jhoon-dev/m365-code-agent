@@ -7,7 +7,7 @@ window.M365Reading = (api) => {
     const { button, label, timeout } = copies.get(data.id);
     copies.delete(data.id);
     clearTimeout(timeout);
-    button.textContent = data.success ? '복사됨' : '복사 실패';
+    button.textContent = data.success ? window.M365Localize('복사됨') : window.M365Localize('복사 실패');
     button.disabled = false;
     setTimeout(() => {
       button.textContent = label;
@@ -46,14 +46,14 @@ window.M365Reading = (api) => {
       const toolbar = document.createElement('div');
       toolbar.className = 'code-toolbar';
       const language = document.createElement('span');
-      language.textContent = code.className.replace('language-', '') || '코드';
+      language.textContent = code.className.replace('language-', '') || window.M365Localize('코드');
       const actions = document.createElement('div');
       actions.className = 'code-actions';
       const wrap = document.createElement('button');
       wrap.type = 'button';
       wrap.className = 'wrap-button';
-      wrap.textContent = '줄바꿈';
-      wrap.title = '이 코드의 줄바꿈 전환';
+      wrap.textContent = window.M365Localize('줄바꿈');
+      wrap.title = window.M365Localize('이 코드의 줄바꿈 전환');
       wrap.addEventListener('click', () => {
         block.dataset.wrap = wrap.getAttribute('aria-pressed') === 'true' ? 'off' : 'on';
         wrapButton(block);
@@ -61,8 +61,8 @@ window.M365Reading = (api) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'copy-button';
-      button.textContent = '복사';
-      button.setAttribute('aria-label', '코드 복사');
+      button.textContent = window.M365Localize('복사');
+      button.setAttribute('aria-label', window.M365Localize('코드 복사'));
       button.addEventListener('click', () => copy(code.textContent, button));
       actions.append(wrap, button);
       toolbar.append(language, actions);

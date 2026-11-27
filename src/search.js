@@ -1,5 +1,6 @@
 // @ts-check
 'use strict';
+const { t } = require('./localization');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 /** @typedef {{text: string, line: number, column: number, frequencies: Map<string, number>, length: number}} Chunk */
@@ -159,9 +160,9 @@ class ProjectIndex {
   /** @param {string} query @param {import('../types/contracts').FileDiscovery} listing @param {() => boolean} [cancelled] */
   async search(query, listing, cancelled = () => false) {
     if (typeof query !== 'string' || !query.trim() || query.length > 8000)
-      throw new Error('관련 코드 검색어는 1~8,000자여야 합니다.');
+      throw new Error(t('관련 코드 검색어는 1~8,000자여야 합니다.'));
     const check = () => {
-      if (cancelled()) throw new Error('작업을 중지했습니다.');
+      if (cancelled()) throw new Error(t('작업을 중지했습니다.'));
     };
     check();
     const names = rankFiles(listing.files, query),

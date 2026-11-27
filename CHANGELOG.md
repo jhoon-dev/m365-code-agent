@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.0
+
+- Add English and Korean interfaces across sidebar/browser/response panels, activity, approval flows, notifications and errors. Preserve user/model text, source, browser matching and response-language behavior.
+- Add the user-level `m365Agent.language` preference (`auto`, `en`, `ko`). Auto uses the OS locale supplied by VS Code, with platform-locale fallback and English for unsupported languages. Refresh panels on preference changes while preserving drafts, conversations, attachments and pending approvals.
+- Localize command/menu names and Settings descriptions through English/Korean VS Code manifest bundles; these host-owned labels follow the VS Code display language.
+
 ## 0.16.4
 
 - Fix README language-switch links for Marketplace readers by linking directly to the corresponding repository documents.

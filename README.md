@@ -8,9 +8,11 @@ An independent VS Code coding agent that uses your signed-in Microsoft 365 Copil
 
 This project is not affiliated with, endorsed by, or supported by Microsoft. You need an eligible Microsoft 365 Copilot account and permission to use browser automation in your organization. Successful tests with one account and example projects do not establish compatibility with every tenant, login flow or security policy.
 
-## What's new in 0.16.4
+## What's new in 0.17.0
 
-This documentation update fixes the language-switch links for Marketplace readers and reorganizes the Korean guide with translated explanations. Runtime behavior is unchanged.
+- Add English and Korean interfaces for chat, browser and response panels, activity, approvals, notifications and errors.
+- Select the interface language automatically from the operating system, or choose it with `m365Agent.language`.
+- Localize VS Code command and Settings contributions using the editor's display language.
 
 ### Included improvements from 0.16.3
 
@@ -31,7 +33,7 @@ Code, conversation context and tool results needed for a task are sent to the si
 
 ## Install and connect
 
-1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent), or use **Extensions → … → Install from VSIX…** with `m365-code-agent-0.16.4.vsix` from a [GitHub release](https://github.com/jhoon-dev/m365-code-agent/releases).
+1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent), or use **Extensions → … → Install from VSIX…** with `m365-code-agent-0.17.0.vsix` from a [GitHub release](https://github.com/jhoon-dev/m365-code-agent/releases).
 2. Open a local project and click the **M365 Agent** icon in the left Activity Bar or the editor title toolbar. The command `M365 Agent: 열기` also opens/restores this view in the secondary sidebar.
 3. Click **연결** (Connect) below the input. The **M365 Copilot 브라우저** editor tab displays the actual automated Edge page.
 4. Complete your company login and MFA yourself, then open the Copilot chat page. Use **외부 브라우저로 전환** (Switch to external browser) if native authentication windows are needed.
@@ -39,7 +41,15 @@ Code, conversation context and tool results needed for a task are sent to the si
 
 Requires Windows, VS Code 1.106+ and Microsoft Edge. No separate Python or Node.js installation is needed to run the extension, although your project's build/test commands need their own runtimes. Remote WSL/SSH/container workspaces are outside this release's scope. In a multi-root workspace, select one local project folder.
 
-The extension does not import your normal Edge profile or passwords. The Webview uses its own persistent profile. Login expiry, MFA and CAPTCHA require your direct action. The extension UI and activity messages remain Korean; model answers default to your request's language and follow an explicit response-language instruction.
+The extension does not import your normal Edge profile or passwords. The Webview uses its own persistent profile. Login expiry, MFA and CAPTCHA require your direct action. The interface supports English and Korean. Model answers default to your request's language and follow an explicit response-language instruction.
+
+## Interface language
+
+The default `m365Agent.language` setting is `auto`. It uses the operating-system locale reported by VS Code: Korean (`ko`, including `ko-KR`) selects Korean; other languages select English. If that desktop locale hint is unavailable, it uses the runtime platform locale.
+
+Choose **⋯ → Language settings** in the sidebar, or search for `m365Agent.language` in VS Code Settings. Select `auto`, `en` (English), or `ko` (한국어). Sidebar, browser and response panels update immediately while keeping your draft, conversation, attachments and pending approval. Existing conversation text is preserved. The setting is a user preference and cannot be overridden by a project.
+
+VS Code owns command/menu names and Settings descriptions, so those use its display language through the extension's English/Korean translation files. Changing the extension preference does not change VS Code's language. Model answers continue to follow your request, independently of interface language.
 
 ## Experimental VS Code model provider
 
@@ -195,6 +205,7 @@ An existing company Code Assistant web URL can be set in `m365Agent.copilotUrl`;
 
 | Setting | Default / purpose |
 | --- | --- |
+| `m365Agent.language` | `auto`; OS language, or choose `en` / `ko` |
 | `m365Agent.experimental.modelProvider.enabled` | `false`; user-level model-provider opt-in |
 | `m365Agent.experimental.modelProvider.maxPromptCharacters` | `120000`; separate provider transport budget |
 | `m365Agent.copilotUrl` | Copilot website URL; optional company-agent URL |
