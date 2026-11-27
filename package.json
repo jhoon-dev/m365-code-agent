@@ -2,7 +2,7 @@
   "name": "m365-code-agent",
   "displayName": "M365 Code Agent",
   "description": "Unofficial, experimental coding agent that uses your signed-in M365 Copilot through Edge to read, edit and delete files in a VS Code workspace.",
-  "version": "0.16.2",
+  "version": "0.16.3",
   "publisher": "jhoon-dev",
   "author": "jhoon-dev",
   "preview": true,

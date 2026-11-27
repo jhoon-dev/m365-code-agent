@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.3
+
+- Keep identical initial requests in separate web conversations after an anonymous model-provider failure. Discard anonymous failed mappings without a returned routing reference while preserving recovery through explicit conversation IDs.
+- Clear selected attachments when switching sidebar conversations, including switches detected through web synchronization.
+- Preserve one Undo record for verified text edits, created files and partial folder deletions from the same failed change batch. Protect later user edits, preserve raw-byte disk hashes and stop the agent after a partial change.
+- Bound the diff preview cache and evict each before/after pair together.
+
 ## 0.16.2
 
 - Keep the Activity Bar shortcut on the left while opening chat in the right secondary sidebar. The editor toolbar opens the same right-side chat.
