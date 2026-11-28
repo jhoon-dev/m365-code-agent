@@ -16,7 +16,7 @@ test('response parser extracts wrapped JSON without changing source strings', ()
   assert.throws(() => parseReply(prompt, 'never-echo'), error => error.code === 'REPLY_NOT_FOUND');
 });
 
-test('Edge collects tenant-style response widgets without clipboard or user interaction', async t => {
+test('Edge collects custom response widgets without clipboard or user interaction', async t => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   t.after(() => browser.close());
   async function fixture(options = {}) {
@@ -39,11 +39,11 @@ test('Edge collects tenant-style response widgets without clipboard or user inte
       if (shape === 'wrapped') {
         const pre = document.createElement('pre'); pre.textContent = 'JSON\n복사\n' + json + '\n코드 복사'; reply.append(pre);
       } else if (shape === 'unknown') {
-        const div = document.createElement('div'); div.className = 'tenant-hashed-widget';
+        const div = document.createElement('div'); div.className = 'custom-hashed-widget';
         for (const part of [json.slice(0, json.indexOf(id)), id, json.slice(json.indexOf(id) + id.length)]) { const span = document.createElement('span'); span.textContent = part; div.append(span); }
         reply.append(div);
       } else if (shape === 'shadow') {
-        const host = document.createElement('tenant-reply'); reply.append(host);
+        const host = document.createElement('custom-reply'); reply.append(host);
         const inner = document.createElement('div'); inner.textContent = json; host.attachShadow({ mode: 'open' }).append(inner);
       } else if (shape === 'frame') {
         const iframe = document.createElement('iframe'); reply.append(iframe);

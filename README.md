@@ -6,9 +6,13 @@
 
 An independent VS Code coding agent that uses your signed-in Microsoft 365 Copilot web session through Playwright. Read, search, create, edit and delete workspace files without a browser extension, clipboard relay or separate AI API key.
 
-This project is not affiliated with, endorsed by, or supported by Microsoft. You need an eligible Microsoft 365 Copilot account and permission to use browser automation in your organization. Successful tests with one account and example projects do not establish compatibility with every tenant, login flow or security policy.
+This project is not affiliated with, endorsed by, or supported by Microsoft. You need an eligible Microsoft 365 Copilot account and browser automation to be allowed in your environment. Successful tests with one account and example projects do not establish compatibility with every account, login flow or security policy.
 
-## What's new in 0.17.0
+## What's new in 0.17.1
+
+- Use account- and environment-neutral wording throughout the interface, Settings, connection diagnostics and guides.
+
+### Included improvements from 0.17.0
 
 - Add English and Korean interfaces for chat, browser and response panels, activity, approvals, notifications and errors.
 - Select the interface language automatically from the operating system, or choose it with `m365Agent.language`.
@@ -29,14 +33,14 @@ Native document/media uploads, mapped conversations and existing Webview protect
 - **The extension does not open a separate localhost HTTP server.** It automates the web UI and does not call private Copilot APIs directly.
 - **The existing Webview file tools verify SHA-256 hashes and previously read ranges.** They provide change review and undo. Explicit automatic approval also skips execution-config review and command approval; shell changes are outside file-tool protection and undo.
 
-Code, conversation context and tool results needed for a task are sent to the signed-in M365 Copilot website. These design choices do not imply organizational approval or Microsoft support. Filename filters cannot identify every secret; configure sensitive paths in `.m365agentignore`.
+Code, conversation context and tool results needed for a task are sent to the signed-in M365 Copilot website. These design choices do not imply Microsoft support or compatibility with every account. Filename filters cannot identify every secret; configure sensitive paths in `.m365agentignore`.
 
 ## Install and connect
 
-1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent), or use **Extensions → … → Install from VSIX…** with `m365-code-agent-0.17.0.vsix` from a [GitHub release](https://github.com/jhoon-dev/m365-code-agent/releases).
+1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent), or use **Extensions → … → Install from VSIX…** with `m365-code-agent-0.17.1.vsix` from a [GitHub release](https://github.com/jhoon-dev/m365-code-agent/releases).
 2. Open a local project and click the **M365 Agent** icon in the left Activity Bar or the editor title toolbar. The command `M365 Agent: 열기` also opens/restores this view in the secondary sidebar.
 3. Click **연결** (Connect) below the input. The **M365 Copilot 브라우저** editor tab displays the actual automated Edge page.
-4. Complete your company login and MFA yourself, then open the Copilot chat page. Use **외부 브라우저로 전환** (Switch to external browser) if native authentication windows are needed.
+4. Complete your account sign-in and MFA yourself, then open the Copilot chat page. Use **외부 브라우저로 전환** (Switch to external browser) if native authentication windows are needed.
 5. Enter a request in VS Code and press Enter or the send arrow. Shift+Enter inserts a newline. Subsequent submission and response collection are automatic.
 
 Requires Windows, VS Code 1.106+ and Microsoft Edge. No separate Python or Node.js installation is needed to run the extension, although your project's build/test commands need their own runtimes. Remote WSL/SSH/container workspaces are outside this release's scope. In a multi-root workspace, select one local project folder.
@@ -59,7 +63,7 @@ VS Code owns command/menu names and Settings descriptions, so those use its disp
 2. Copy the [compact Agent template](examples/m365-web.agent.md) to your project's `.github/agents/m365-web.agent.md`.
 3. In Copilot Chat, choose **M365 Web** as the Agent and **M365 Web (Experimental)** as the model under **M365 Code Agent (Experimental)**.
 4. On the first request, complete login/MFA in the provider's **separate dedicated external browser**. It does not copy the Webview profile or cookies.
-5. Start with a short question and the template's `read`/`edit` tools. Host Chat availability, account access, tools and organization policy still apply.
+5. Start with a short question and the template's `read`/`edit` tools. Host Chat availability, account access, tools and account/service policy still apply.
 
 The template requests file reading/editing without terminal commands or external services; it is not a security sandbox. The default Agent with all extension/MCP tools can exceed the host's System/tool context budget **before the provider is called**. Browser-side compaction cannot fix that preflight failure. Use a new Chat with a compact Agent or only the necessary tools. The `Local` and `Copilot` execution paths differ; changing the model does not switch the execution path.
 
@@ -72,7 +76,7 @@ The template requests file reading/editing without terminal commands or external
 
 - Converts text, System/User/Assistant roles, tool schemas, call IDs and results. System instructions are preserved as roles and bridge instructions in JSON; this is not access to the website's native system channel. UTF-8 text/JSON/XML DataParts and documented text-only PromptTsx trees are supported. Images, binary data and opaque/unknown PromptTsx nodes are explicitly rejected.
 - Keeps a separate browser profile and a serial queue of up to eight active/pending requests. Queued cancellation submits nothing. Each VS Code Chat starts one web conversation on its first request. Follow-ups and tool round trips reuse it; switching Chats restores the corresponding web URL. **Successful browser sessions are reused.** Failure, cancellation, relevant configuration changes or disposal retire the browser. The provider does not synchronize with the Webview's history.
-- **Web history is not disabled or automatically deleted.** Each mapped web conversation may retain all round-trip JSON prompts containing conversation context, code and tool results. Organizational retention/audit policy may apply. Local count-only diagnostics do not prevent this web history.
+- **Web history is not disabled or automatically deleted.** Each mapped web conversation may retain all round-trip JSON prompts containing conversation context, code and tool results. Service retention rules may apply. Local count-only diagnostics do not prevent this web history.
 - The [stable VS Code model-provider API does not expose a Chat/session ID](https://github.com/microsoft/vscode/issues/305853). The experimental bridge therefore retains opaque routing references in assistant history and unique host tool-call IDs, with URL mappings saved in workspace state. These reference definitions are hidden by Markdown rendering, but can appear when copying raw text. They are removed from model input; mapping storage contains no prompt/answer bodies. Callers that manage their own sessions may pass `modelOptions.m365ConversationId`. Follow-ups with assistant history require a valid history identifier or an explicit ID. The provider stops if the identifier is stale or its saved web URL cannot be restored. If the first response fails before returning a routing reference, another initial request without an explicit ID starts a new web conversation. Start a new VS Code Chat when first switching to this provider from another model; older pre-mapping provider Chats cannot be restored automatically.
 - Webview chats keep their own existing URL mappings; native Copilot Chat and Webview lists are separate. Web titles, local renames/deletions and rendered web JSON are not mirrored. Existing accumulated web history is left intact.
 - No token streaming: validated text and tool calls are returned after the complete JSON response is collected. Web round trips add latency at each Agent step.
@@ -100,7 +104,7 @@ Historical checks before conversation mapping, on **November 18–19, 2026, VS C
 - Tested **five user turns in the same Chat**. At 48,000 characters, turn three saved the edit and read it back, but final completion failed with a minimum required context of **48,370 characters**. Increasing the limit to 60,000 allowed that Chat to continue through turn five. Added `square`, `cube` and `negate`, verified saved files and recalled initial/intermediate restrictions. The final request used about **53.7K total characters**, including roughly 46.9K of messages and 5K of schemas. This measurement informed the then-default 60,000-character limit.
 - Outside the Agent, the saved calculator passed 12 arithmetic assertions and a source-preservation check for its three original functions. Live testing exercised old-exchange omission; exact repeated-text references are covered separately by automated tests.
 
-These results do not establish compatibility with the default Agent's full tool set, every MCP configuration, longer conversations or every tenant. **A successful single task does not establish unrestricted multi-turn support.** The full-tool default Agent's context-budget failure was reproduced. No claim of a seven-to-nine-turn ceiling is made; prompt size depends on content and host behavior.
+These results do not establish compatibility with the default Agent's full tool set, every MCP configuration, longer conversations or every account. **A successful single task does not establish unrestricted multi-turn support.** The full-tool default Agent's context-budget failure was reproduced. No claim of a seven-to-nine-turn ceiling is made; prompt size depends on content and host behavior.
 
 ## Webview chat, browser and history
 
@@ -116,17 +120,17 @@ The existing M365 Agent view remains available without enabling the model provid
 
 ### Images, documents and video analysis
 
-Select **이미지·문서·동영상**, choose files and ask, for example, “Compare the spreadsheet with the PDF” or “Explain the error visible in this recording.” Supported native uploads include PNG/JPEG/GIF/BMP/WebP images, PDF, Word (`.doc`, `.docx`) and Excel (`.xls`, `.xlsx`). Copilot must accept the selected format in your account. Its [supported-format guidance](https://support.microsoft.com/en-us/microsoft-365-copilot/file-formats-supported-by-microsoft-365-copilot) and tenant permissions still apply. An upload failure stops the request instead of silently asking without the file.
+Select **이미지·문서·동영상**, choose files and ask, for example, “Compare the spreadsheet with the PDF” or “Explain the error visible in this recording.” Supported native uploads include PNG/JPEG/GIF/BMP/WebP images, PDF, Word (`.doc`, `.docx`) and Excel (`.xls`, `.xlsx`). Copilot must accept the selected format in your account. Its [supported-format guidance](https://support.microsoft.com/en-us/microsoft-365-copilot/file-formats-supported-by-microsoft-365-copilot) and account permissions still apply. An upload failure stops the request instead of silently asking without the file.
 
-**Live VS Code check (November 19, 2026, VS Code 1.147.0):** the installed 0.16.0 VSIX was exercised through the actual sidebar file chooser and Run button against one signed-in company Copilot account. Synthetic image/PDF and Word/Excel pairs returned their file-only markers, PDF total 43, Word budget difference 200 and Excel total 87. A synthetic video returned the correct red/FIRST, green/MIDDLE and blue/LAST samples at 0.967, 2.9 and 4.833 seconds, with audio and unsampled-scene limitations. Both upload confirmation and the rendered sidebar answers were checked. This does not establish support for every tenant, policy, codec or file size.
+**Live VS Code check (November 19, 2026, VS Code 1.147.0):** the installed 0.16.0 VSIX was exercised through the actual sidebar file chooser and Run button against one signed-in Copilot account. Synthetic image/PDF and Word/Excel pairs returned their file-only markers, PDF total 43, Word budget difference 200 and Excel total 87. A synthetic video returned the correct red/FIRST, green/MIDDLE and blue/LAST samples at 0.967, 2.9 and 4.833 seconds, with audio and unsampled-scene limitations. Both upload confirmation and the rendered sidebar answers were checked. This does not establish support for every account, policy, codec or file size.
 
 Videos (`.mp4`, `.mov`, `.webm`, `.mkv`, `.avi`) are decoded locally with bundled FFmpeg and represented by three evenly sampled JPEG frames with timestamps. The original video is not uploaded. Analysis covers those sampled images only: it does not transcribe audio, inspect every frame or establish what happened between samples. The request includes this limitation so the model can qualify its answer.
 
 Select at most five files; videos expand into frames, and the resulting native uploads must also fit the five-file cap. Attachment defaults are 64MB per selected file and 100MB total; adjust `attachmentMaxFileSizeMB` / `attachmentMaxTotalSizeMB` if needed. Smaller service limits take precedence. Native file bytes use the upload channel rather than the 120,000-character prompt budget. Existing text attachments retain their separate text-context budget.
 
-Switching to another sidebar conversation clears the current attachment selection. Only files you select are uploaded; project inspection does not automatically upload documents or media. Native files and video frames enter your signed-in Microsoft service and are subject to its storage, retention and organizational policies. Attachments are available in the **M365 Agent sidebar**; the experimental VS Code model provider still rejects image/binary API inputs.
+Switching to another sidebar conversation clears the current attachment selection. Only files you select are uploaded; project inspection does not automatically upload documents or media. Native files and video frames enter your signed-in Microsoft service and are subject to its storage and retention policies. Attachments are available in the **M365 Agent sidebar**; the experimental VS Code model provider still rejects image/binary API inputs.
 
-If an interrupted upload leaves a pending draft, clear its attachments and refresh the dedicated Copilot page before retrying. Use the attachment selectors below if your tenant renders a different upload interface.
+If an interrupted upload leaves a pending draft, clear its attachments and refresh the dedicated Copilot page before retrying. Use the attachment selectors below if your account renders a different upload interface.
 
 `m365Agent.browserView=editor` displays the actual Playwright page in a VS Code Webview with mouse, scrolling, keyboard and Korean IME support. Input is locked during automated submission/collection/model-menu actions and allowed while waiting for login. A tab selector can show login popups from the same dedicated browser.
 
@@ -201,14 +205,14 @@ Discovery can cover 20,000 files, respecting root and nested ignore rules, links
 
 ## Settings and troubleshooting
 
-An existing company Code Assistant web URL can be set in `m365Agent.copilotUrl`; ordinary M365 Copilot chat also works because each request includes protocol instructions. Reload after changing Webview connection settings. Existing web drafts are not overwritten.
+An existing Code Assistant web URL can be set in `m365Agent.copilotUrl`; ordinary M365 Copilot chat also works because each request includes protocol instructions. Reload after changing Webview connection settings. Existing web drafts are not overwritten.
 
 | Setting | Default / purpose |
 | --- | --- |
 | `m365Agent.language` | `auto`; OS language, or choose `en` / `ko` |
 | `m365Agent.experimental.modelProvider.enabled` | `false`; user-level model-provider opt-in |
 | `m365Agent.experimental.modelProvider.maxPromptCharacters` | `120000`; separate provider transport budget |
-| `m365Agent.copilotUrl` | Copilot website URL; optional company-agent URL |
+| `m365Agent.copilotUrl` | Copilot website URL; optional Code Assistant agent URL |
 | `m365Agent.browserView` | `editor`; `external` opens a separate browser window |
 | `m365Agent.browserChannel` | `msedge`; `chrome` is selectable |
 | `m365Agent.composerSelector` | Automatic composer detection; CSS override |
@@ -235,14 +239,14 @@ For provider context errors, start a **new Chat** first. If its first request fa
 - `PROFILE_ACCESS_FAILED`: check extension-storage permissions and disk space.
 - `BROWSER_NOT_FOUND`: check the selected browser installation. `PROFILE_IN_USE`: close another extension connection using that dedicated profile.
 - `BROWSER_PANEL_FAILED`: reload or try `browserView=external`.
-- `BROWSER_CERTIFICATE_FAILED` / `BROWSER_PROXY_FAILED`: check corporate certificate/proxy/VPN setup and ordinary M365 access.
+- `BROWSER_CERTIFICATE_FAILED` / `BROWSER_PROXY_FAILED`: check network certificate/proxy/VPN setup and ordinary M365 access.
 - `BROWSER_NAVIGATION_TIMEOUT` / `BROWSER_NAVIGATION_FAILED`: inspect page loading and reconnect.
 
-Reconnect reuses live contexts and surviving login/composer tabs. Recovery does not delete profiles/cookies, bypass certificates or change organizational security policy. Missing a standard executable path does not prove a custom installation is absent.
+Reconnect reuses live contexts and surviving login/composer tabs. Recovery does not delete profiles/cookies, bypass certificates or change security policy. Missing a standard executable path does not prove a custom installation is absent.
 
 Only structured JSON with the current request ID is accepted. Equivalent blocks are deduplicated, compatible edits merged and persistent same-file conflicts rejected. Mixed tool/edit replies execute tools first and require fresh results before edits. Input text and meaningful whitespace are verified before sending; an uncertain send is never retried. A recognizable legacy automation draft can be recovered, but ordinary drafts are not deleted. Do not manually resend a stopped automation prompt without checking the error.
 
-This unofficial web automation depends on DOM structure, service limits, login state and organizational policies. It is not an official M365 desktop/API integration. Microsoft's contractual data protections do not constitute approval for this extension or guarantee propagation of source-file sensitivity labels to pasted prompts. See [Microsoft's enterprise data protection guidance](https://learn.microsoft.com/en-us/copilot/plan/enterprise-data-protection).
+This unofficial web automation depends on DOM structure, service limits, login state and service policies. It is not an official M365 desktop/API integration. Microsoft's contractual data protections do not constitute approval for this extension or guarantee propagation of source-file sensitivity labels to pasted prompts.
 
 ## Development and validation
 
@@ -258,7 +262,7 @@ npm run package
 
 Browser tests use real Edge against local mock Copilot pages, with file-level concurrency limited to two. Integration tests run an actual VS Code extension host for files, approvals, dirty-file/race guards, MCP APIs and model-provider registration/tool round trips. CI runs these checks and packaging. Set `M365_AGENT_VSCODE_PATH` to use a particular local VS Code executable.
 
-Live-account tests are distinct from these mocks/host tests. The model-provider measurements above used one account and an example project. A separate November 16, 2026 Webview check with version 0.13.2 verified manual login, project analysis and reviewed two-file edits; test execution required additional tool-protocol guidance. Not every action succeeded on the first request. These checks do not validate every organization's SSO/MFA/DLP/proxy setup or all revised Webview prompts.
+Live-account tests are distinct from these mocks/host tests. The model-provider measurements above used one account and an example project. A separate November 16, 2026 Webview check with version 0.13.2 verified manual login, project analysis and reviewed two-file edits; test execution required additional tool-protocol guidance. Not every action succeeded on the first request. These checks do not validate every account's sign-in/MFA/network setup or all revised Webview prompts.
 
 Test-output cleanup is **dry-run by default**:
 

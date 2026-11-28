@@ -209,7 +209,7 @@ async function waitReady(browser, locator, names, onStatus) {
   }
   throw new Error(
     t(
-      'Copilot 화면에서 모든 파일의 업로드 완료를 확인하지 못했습니다. 파일 형식·크기·조직 정책과 첨부 완료 선택자를 확인하세요. 요청은 전송하지 않았습니다.',
+      'Copilot 화면에서 모든 파일의 업로드 완료를 확인하지 못했습니다. 파일 형식·크기·업로드 권한과 첨부 완료 선택자를 확인하세요. 요청은 전송하지 않았습니다.',
     ),
   );
 }

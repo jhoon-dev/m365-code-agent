@@ -31,7 +31,7 @@ function connectionFailure(error, stage, options = {}) {
     hint = t('연결 진단의 실패 단계와 원인 코드를 확인하세요.');
   if (stage === 'url') {
     code = 'BROWSER_URL_INVALID';
-    hint = t('m365Agent.copilotUrl에 회사 M365 Copilot의 HTTPS 주소를 설정하세요.');
+    hint = t('m365Agent.copilotUrl에 M365 Copilot의 HTTPS 주소를 설정하세요.');
   } else if (stage === 'profile') {
     code = 'PROFILE_ACCESS_FAILED';
     hint = t(
@@ -56,15 +56,13 @@ function connectionFailure(error, stage, options = {}) {
     );
   } else if (/ERR_CERT_/i.test(text)) {
     code = 'BROWSER_CERTIFICATE_FAILED';
-    hint = t('회사 인증서 체인을 확인하고 같은 M365 주소가 일반 브라우저에서 열리는지 확인하세요.');
+    hint = t('인증서 체인을 확인하고 같은 M365 주소가 일반 브라우저에서 열리는지 확인하세요.');
   } else if (/ERR_.*(?:PROXY|TUNNEL)/i.test(text)) {
     code = 'BROWSER_PROXY_FAILED';
-    hint = t('회사 프록시·VPN 연결과 일반 브라우저의 M365 접속 상태를 확인하세요.');
+    hint = t('프록시·VPN 연결과 일반 브라우저의 M365 접속 상태를 확인하세요.');
   } else if (/EACCES|EPERM|access.*denied|permission denied/i.test(text)) {
     code = 'BROWSER_ACCESS_DENIED';
-    hint = t(
-      '브라우저 실행·전용 프로필 접근 권한을 확인하세요. 회사 보안 정책에서 거절한 경우 관리자 확인이 필요합니다.',
-    );
+    hint = t('브라우저 실행·전용 프로필 접근 권한과 보안 설정을 확인하세요.');
   } else if (stage === 'navigation' && (/Timeout|timed out/i.test(text) || error?.name === 'TimeoutError')) {
     code = 'BROWSER_NAVIGATION_TIMEOUT';
     hint = t(

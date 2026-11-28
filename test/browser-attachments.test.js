@@ -219,7 +219,7 @@ test('an empty busy composer settles before upload while foreign cards appearing
 });
 
 test('OneDrive informational alert allows three ready Bebop documents while Korean failures and configured alerts still block', async t => {
- const disclosure='장치에서 업로드하면 OneDrive (회사/학교)(으)로 복사본이 전송됩니다. 업로드 관리';
+ const disclosure='장치에서 업로드하면 OneDrive로 복사본이 전송됩니다. 업로드 관리';
  const browser=await bebopFixture(t);
  await browser.page.locator('.fai-BebopLiteChatInput').evaluate((wrapper,text)=>{const alert=document.createElement('div');alert.role='alert';alert.textContent=text;wrapper.append(alert);},disclosure);
  const files=[file('report.pdf','application/pdf'),file('notes.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document'),file('book.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')];

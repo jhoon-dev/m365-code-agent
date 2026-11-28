@@ -278,7 +278,7 @@ class AgentView {
       type: 'message',
       role: 'system',
       text: t(
-        'Copilot 브라우저 연결: {0}\n{1}\n브라우저 화면에서 회사 계정 로그인 후 작업을 시작하세요.',
+        'Copilot 브라우저 연결: {0}\n{1}\n브라우저 화면에서 계정으로 로그인한 뒤 작업을 시작하세요.',
         result.title,
         result.url,
       ),

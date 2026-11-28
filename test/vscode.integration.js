@@ -71,7 +71,7 @@ async function run() {
   provider.responsePanel.dispose();
   const root = vscode.workspace.workspaceFolders[0].uri.fsPath;
   await require('./model-provider.integration')(vscode, modelProvider);
-  // Diagnose launch/storage failure without launching again or requiring a company login.
+  // Diagnose launch/storage failure without launching again or requiring account sign-in.
   const connectionOriginalContext = provider.context, connectionOriginalOutput = provider.output, connectionOriginalPost = provider.post;
   const connectionEvents = [], connectionLog = []; let launchAttempts = 0;
   try {
@@ -680,7 +680,7 @@ async function run() {
     await page.locator('#userInput').fill('확장 호스트에서 Edge 자동 입력');
     assert.equal(await page.locator('#userInput').inputValue(), '확장 호스트에서 Edge 자동 입력');
     // Exercise the complete provider -> browser -> rendered widget -> provider
-    // path inside the extension host, without a real company account.
+    // path inside the extension host, without a live Copilot account.
     const context = await browser.newContext();
     await context.route('https://m365.cloud.microsoft/**', route => route.fulfill({ contentType: 'text/html; charset=utf-8', body: `<button id="new" onclick="window.newChatCount=(window.newChatCount||0)+1">New chat</button><textarea id="userInput"></textarea><button id="send">보내기</button><button disabled>Stop generating</button><main><section><div id="answer"></div></section></main><script>
 document.querySelector('#send').onclick=()=>{const input=document.querySelector('textarea');const prompt=input.value;const id=prompt.match(/Current requestId: ([^\\s]+)/)[1];const data=JSON.parse(prompt.slice(prompt.indexOf(' DATA: ')+7));input.value='';let reply={requestId:id,kind:'done',message:'실제 VS Code 자동 응답 수집 확인'};

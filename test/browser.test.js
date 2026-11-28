@@ -16,7 +16,7 @@ function submit(){ const input=document.querySelector('textarea');const prompt=i
  const echo=document.createElement('pre');echo.textContent=prompt;document.querySelector('#responses').append(echo);
  setTimeout(()=>{const code=document.createElement('pre');code.textContent=JSON.stringify({requestId:id,kind:'done',message:'로컬 시뮬레이터 응답'});document.querySelector('#responses').append(code);},100);
 }
-// Regression fixture: Enter only inserts a newline, as on affected tenant UIs.
+// Regression fixture: Enter only inserts a newline, as on affected web interfaces.
 document.querySelector('#send').onclick=submit;
 </script></body></html>` }));
   const page = await context.newPage();

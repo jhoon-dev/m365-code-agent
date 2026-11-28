@@ -19,7 +19,7 @@
   "view.launcher.welcome": "Chat opens in the secondary sidebar on the right.\n[Open chat](command:m365Agent.open)",
   "configuration.experimental.modelProvider.maxPromptCharacters.description": "Character limit for experimental model web requests, separate from the sidebar limit. Older complete exchanges may be omitted, but System instructions, all user requests, the latest tool exchange and tool definitions are preserved. The actual web input limit takes precedence.",
   "configuration.experimental.modelProvider.enabled.description": "Offer the experimental M365 Web model in the VS Code model picker. Sign in separately in its dedicated browser. VS Code tools follow host approval policy; sidebar hash/range validation and Undo do not apply.",
-  "configuration.copilotUrl.description": "Your company M365 Copilot or Code Assistant agent web URL.",
+  "configuration.copilotUrl.description": "Your M365 Copilot or Code Assistant agent web URL.",
   "configuration.browserChannel.description": "Browser installed on this PC. No separate browser extension is required.",
   "configuration.maxRounds.description": "Safety limit for Copilot requests per task (default 100, maximum 500). Repeated unchanged reads, failures or command results stop earlier. Explicit user values are preserved. Unlimited requests disables only this count limit.",
   "configuration.loginTimeoutSeconds.description": "Seconds to keep the first request queued while waiting for sign-in/MFA and input readiness. It is sent automatically once ready.",

@@ -1,4 +1,4 @@
-M365 Code Agent 0.17.0 - Installation and use
+M365 Code Agent 0.17.1 - Installation and use
 ==========================================
 
 English is the default release language. For Korean, see INSTALL.ko.txt and
@@ -16,8 +16,8 @@ is preserved. Command/menu names and Settings descriptions follow VS Code's own
 display language. This preference does not change model answer language.
 
 This is an unofficial experimental extension, not a Microsoft product.
-Use requires an eligible M365 Copilot account and organizational permission for
-browser automation. Compatibility with every tenant/login flow is not guaranteed.
+Use requires an eligible M365 Copilot account and permission for
+browser automation. Compatibility with every account/login flow is not guaranteed.
 
 Requirements
 ------------
@@ -30,7 +30,7 @@ outside this release's scope.
 Install and use the existing M365 Agent chat
 ------------------------------------------
 1. Open VS Code Extensions, choose ... > Install from VSIX..., and select
-   m365-code-agent-0.17.0.vsix. Reload VS Code if prompted.
+   m365-code-agent-0.17.1.vsix. Reload VS Code if prompted.
    Marketplace: https://marketplace.visualstudio.com/items?itemName=jhoon-dev.m365-code-agent
 2. Open the local project you want to work on.
 3. Click M365 Agent in the left Activity Bar or editor title toolbar. If an older layout remains, run
@@ -64,10 +64,10 @@ Select at most five files and keep the resulting native uploads within five
 files (a video uses three). Defaults: 64MB per selected file, 100MB total;
 settings: m365Agent.attachmentMaxFileSizeMB / attachmentMaxTotalSizeMB.
 Native uploads have a separate channel from the 120,000-character prompt budget.
-Smaller account/service limits and organizational upload permissions apply.
+Smaller account/service limits and account upload permissions apply.
 Files enter Microsoft's service and follow its retention/storage policies.
 Upload readiness timeout: m365Agent.attachmentTimeoutSeconds (120 seconds).
-For changed tenant UI, attachmentInputSelector / attachmentButtonSelector /
+For a changed web interface, attachmentInputSelector / attachmentButtonSelector /
 attachmentReadySelector / attachmentErrorSelector provide CSS overrides.
 This feature is separate from the experimental VS Code model provider, which
 still rejects image/binary API inputs. See README for formats and limitations.
@@ -96,7 +96,7 @@ Optional VS Code model provider - disabled by default
 
 The existing Webview remains available. In the provider path VS Code/the calling
 extension executes tools and handles approval. Webview file hash/range checks
-and its undo DO NOT apply. Host Chat/account/tool/organization requirements apply.
+and its undo DO NOT apply. Host Chat/account/tool requirements apply.
 
 Important experimental limits:
 - No token streaming; a complete validated JSON response is returned at once.
@@ -110,7 +110,7 @@ Important experimental limits:
   creating a replacement. Start a new Chat when switching from another model
   or continuing a provider Chat created before this update. See README for details.
 - Web history is NOT disabled/deleted. Code, context and tool-result JSON may
-  remain in each conversation under organizational retention/audit policies.
+  remain in each conversation under service retention rules.
 - Default provider budget is 120,000 characters, maximum 120,000. It is separate
   from the Webview's default 120,000 characters. Actual web input limits prevail.
 - One measured first request required about 46K total characters. A smaller web
@@ -182,16 +182,16 @@ Troubleshooting and data handling
 --------------------------------
 Use ... > 연결 진단 (Connection diagnostics), even if the browser never opens.
 Inspect failure stage/code in the M365 Code Agent output channel. Check browser
-installation, profile access, ordinary M365 access and company proxy/certificate
+installation, profile access, ordinary M365 access and proxy/certificate
 policy. Configure composer/send/response selectors only if automatic detection
-does not match your web UI. An existing company Code Assistant URL can be set
+does not match your web UI. An existing Code Assistant URL can be set
 in m365Agent.copilotUrl; reload Webview connection settings afterward.
 
 No separate token/cookie extraction, localhost HTTP relay, developer backend or
 extension telemetry is used. Read source and tool results are sent to the signed-in
 M365 website as prompts. Security/contract/data-label policies still apply. Name
 filters cannot detect every secret; configure sensitive paths in .m365agentignore.
-The extension does not bypass company policy, certificates or login controls.
+The extension does not bypass security policy, certificates or login controls.
 
 Full behavior, configuration, measured live-test scope and development commands:
 README.md (English), README.ko.md (Korean). Changes: CHANGELOG.md.

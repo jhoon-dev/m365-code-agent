@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.17.1
+
+- Use account- and environment-neutral wording in English and Korean interfaces, Settings, connection diagnostics and documentation.
+
 ## 0.17.0
 
 - Add English and Korean interfaces across sidebar/browser/response panels, activity, approval flows, notifications and errors. Preserve user/model text, source, browser matching and response-language behavior.
@@ -33,7 +37,7 @@
 
 - Accept legitimate Windows 8.3 file paths while rejecting symbolic links and directory junctions through filesystem-entry checks.
 - Recognize native Bebop attachment cards whose filenames exist only in accessibility labels, and distinguish informational OneDrive upload notices from actual failures. Wait for an empty loading composer to settle while preserving existing-draft protection.
-- Validate image, PDF, Word, Excel and sampled video analysis through the installed VSIX sidebar/file chooser/Run flow in VS Code 1.147.0 with a signed-in company Copilot account and synthetic fixtures.
+- Validate image, PDF, Word, Excel and sampled video analysis through the installed VSIX sidebar/file chooser/Run flow in VS Code 1.147.0 with a signed-in Copilot account and synthetic fixtures.
 
 - Add explicit local image, PDF, Word and Excel selection and native Copilot uploads to the M365 Agent sidebar, with bounded file sizes, upload readiness/error checks and no silent text-only submission on upload failure. Keep ordinary workspace text attachments and experimental model-provider binary-input restrictions.
 - Analyze videos through three locally sampled JPEG frames with timestamps using bundled FFmpeg. State partial visual coverage and no audio transcription in both the request and guides; never upload the original video. Cap selection and resulting uploads at five files.
@@ -80,7 +84,7 @@
 - Catch profile and webview creation failures as well as browser launch failures. Automatically show stage-specific failure codes/details in the output panel; redact profile/storage paths and URL query/fragment data from reported failures.
 - Reuse a live persistent context after page loss or navigation failure, retry failed navigation, preserve an existing composer/sign-in page, and prevent an old close event from discarding a newer connection.
 - Cover startup classification, offline storage failure, navigation retry, login-page/context reuse, late-close races and actual isolated persistent Edge launch. Verify offline failure diagnostics inside real VS Code.
-- Company-PC launch and tenant access must still be confirmed from the reported diagnostic code; do not reset profiles, bypass certificates or change security policies automatically.
+- Local browser launch and account access must still be confirmed from the reported diagnostic code; do not reset profiles, bypass certificates or change security policies automatically.
 
 ## 0.13.1
 
@@ -206,7 +210,7 @@
 
 ## 0.3.1
 
-- Collect rendered JSON from tenant-specific code widgets, highlighted spans, open shadow roots and child frames, beyond pre/code tags.
+- Collect rendered JSON from custom code widgets, highlighted spans, open shadow roots and child frames, beyond pre/code tags.
 - Parse balanced JSON objects surrounded by language headings/copy controls. Normalize editor whitespace only outside JSON strings.
 - Ignore disabled/unrelated Stop controls and stabilize the parsed JSON rather than changing copy/footer text.
 - Reject outgoing prompt echoes, stale IDs and conflicting current-turn responses. Protocol examples now use placeholder IDs.
@@ -238,7 +242,7 @@
 - Review changes by default; open native VS Code diffs, apply/reject, and undo the most recent edit batch while protecting subsequent user edits.
 - Tests cover non-submitting Enter, disabled/unresponsive Send, read-only modes, command results, webview controls and VS Code integration.
 
-Known limitation: authenticated company-tenant UI integration still requires verification in the user's environment. No inline completions, background agents or full parity with commercial coding agents.
+Known limitation: authenticated account UI integration still requires verification in the user's environment. No inline completions, background agents or full parity with commercial coding agents.
 
 ## 0.1.0
 
@@ -249,4 +253,4 @@ Known limitation: authenticated company-tenant UI integration still requires ver
 - File hash conflict checks, dirty-editor protection and workspace path boundaries.
 - Local Edge protocol tests and a VS Code extension-host integration test.
 
-Known limitation: authenticated company-tenant UI integration has not yet been verified. M365 page changes may require selector adjustments.
+Known limitation: authenticated account UI integration has not yet been verified. M365 page changes may require selector adjustments.

@@ -46,7 +46,7 @@ function validateCopilotUrl(value) {
     url.password ||
     (url.port && url.port !== '443')
   )
-    throw new Error(t('회사 M365 Copilot의 HTTPS 주소만 연결할 수 있습니다.'));
+    throw new Error(t('M365 Copilot의 HTTPS 주소만 연결할 수 있습니다.'));
   return url.href;
 }
 
@@ -164,7 +164,7 @@ class CopilotBrowser {
             if ((await locator.isVisible()) && (await locator.isEditable()))
               return { locator, frame, selector };
           } catch {
-            /* An ID can belong to a non-editable wrapper in some tenant versions. */
+            /* An ID can belong to a non-editable wrapper in some interface versions. */
           }
         }
       }
@@ -237,7 +237,7 @@ class CopilotBrowser {
           readySince = 0;
           const pages = this.context.pages().filter((page) => !page.isClosed());
           if (pages.some((page) => isLoginUrl(page.url())))
-            report(t('회사 계정 로그인·MFA 대기 중 · 완료되면 첫 요청을 자동으로 보냅니다.'));
+            report(t('계정 로그인·MFA 대기 중 · 완료되면 첫 요청을 자동으로 보냅니다.'));
           else {
             report(t('Copilot 대화 화면 대기 중 · 로그인과 화면 로딩이 끝나면 자동으로 계속합니다…'));
           }

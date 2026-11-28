@@ -10,7 +10,7 @@
     {"path": "types/", "role": "타입 정의"}
   ],
   "entryPoints": [{"file": "package.json", "role": "VS Code 확장 매니페스트, 메인 엔트리=src/extension.js"}],
-  "execution": "일반 애플리케이션이 아니라 VS Code 확장입니다. VS Code Marketplace 또는 VSIX로 설치 후 M365 Agent 뷰를 열고, Edge 기반 Copilot 로그인(회사 계정, MFA)을 완료한 뒤 채팅을 사용합니다.",
+  "execution": "일반 애플리케이션이 아니라 VS Code 확장입니다. VS Code Marketplace 또는 VSIX로 설치 후 M365 Agent 뷰를 열고, Edge 기반 Copilot 로그인(Copilot 계정, MFA)을 완료한 뒤 채팅을 사용합니다.",
   "requirements": ["Windows", "VS Code 1.106+", "Microsoft Edge", "Microsoft 365 Copilot 계정"],
   "mainCommands": ["M365 Agent: 열기", "M365 Agent: Copilot 연결 / 로그인", "M365 Agent: 새 대화", "M365 Agent: 작업 중지", "M365 Agent: 연결 진단", "M365 Agent: Copilot 브라우저 열기"],
   "notes": ["별도 OpenAI/API 키 불필요", "확장 실행 자체에는 Python/Node.js 설치 불필요", "프로젝트 빌드/테스트는 해당 프로젝트 런타임 필요", "WSL/SSH/Container 원격 워크스페이스는 범위 밖"]

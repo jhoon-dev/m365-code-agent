@@ -80,7 +80,7 @@ function renderWebview({ nonce, cspSource, resource }) {
 <footer>
 <div id="roundProgress" hidden aria-live="polite">
 </div>
-<div id="status" role="status">${t('Copilot 연결 후 회사 계정으로 로그인하세요.')}</div>
+<div id="status" role="status">${t('Copilot에 연결한 뒤 계정으로 로그인하세요.')}</div>
 <section id="changes" hidden>
 <strong id="changeTitle">${t('변경 검토')}</strong>
 <p id="reviewReason">

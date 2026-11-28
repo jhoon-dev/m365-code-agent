@@ -2,7 +2,7 @@
   "name": "m365-code-agent",
   "displayName": "M365 Code Agent",
   "description": "%extension.description%",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "publisher": "jhoon-dev",
   "author": "jhoon-dev",
   "preview": true,
